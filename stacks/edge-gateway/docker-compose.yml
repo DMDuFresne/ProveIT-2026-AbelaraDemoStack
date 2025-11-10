@@ -1,0 +1,106 @@
+# =============================================================================
+# ProveIT 2026 Demo Stack - Edge Gateway - Docker Compose Configuration
+# =============================================================================
+# Description: This file contains the configuration for the Edge Gateway services of 
+# the ProveIT 2026 Demo Stack.
+# 
+# It is used to deploy the Edge Gateway services using Docker Compose.
+# 
+# =============================================================================
+
+# =============================================================================
+# MINIMAL SHARED CONFIGURATIONS
+# =============================================================================
+x-defaults: &defaults
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: 100m
+      max-file: "5"
+  security_opt:
+    - no-new-privileges:true
+
+x-common-environment: &common-environment
+  TZ: ${EDGE_GATEWAY_TZ:-America/Chicago}
+
+x-ignition-common: &ignition-common
+  # Common Ignition Gateway Configuration
+  # Admin password can be set via GATEWAY_ADMIN_PASSWORD or GATEWAY_ADMIN_PASSWORD_FILE (for secrets)
+  GATEWAY_ADMIN_PASSWORD: ${EDGE_GATEWAY_IGNITION_GATEWAY_ADMIN_PASSWORD}
+  GATEWAY_ADMIN_PASSWORD_FILE: ${EDGE_GATEWAY_IGNITION_GATEWAY_ADMIN_PASSWORD_FILE:-}
+  IGNITION_EDITION: ${EDGE_GATEWAY_IGNITION_EDITION:-edge}
+  # Security: Run as non-root user (optional, uncomment and set if needed)
+  # IGNITION_UID: ${IGNITION_UID:-}
+  # IGNITION_GID: ${IGNITION_GID:-}
+
+# =============================================================================
+# NETWORKS - External Network
+# =============================================================================
+
+networks:
+  operations-network:
+    external: true
+
+# =============================================================================
+# SERVICES
+# =============================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # Edge Gateway - Ignition Edge
+  # ---------------------------------------------------------------------------
+
+  edge-ignition-gateway:
+    <<: *defaults
+    image: inductiveautomation/ignition:${EDGE_GATEWAY_IGNITION_VERSION:-latest}
+    container_name: edge-ignition-gateway
+    hostname: edge-ignition-gateway
+    environment:
+      <<: [*common-environment, *ignition-common]
+      # EULA Acceptance
+      ACCEPT_IGNITION_EULA: Y
+      # Admin Credentials
+      GATEWAY_ADMIN_USERNAME: ${EDGE_GATEWAY_GATEWAY_ADMIN_USERNAME:-admin}
+      # Gateway Identification
+      GATEWAY_SYSTEM_NAME: ${EDGE_GATEWAY_IGNITION_GATEWAY_SYSTEM_NAME:-ProveIT-edge-Gateway}
+      # Network Configuration
+      GATEWAY_NETWORK_UUID: ${EDGE_GATEWAY_IGNITION_GATEWAY_NETWORK_UUID}
+      GATEWAY_NETWORK_ENABLED: ${EDGE_GATEWAY_IGNITION_GATEWAY_NETWORK_ENABLED:-true}
+      GATEWAY_NETWORK_REQUIRESSL: ${EDGE_GATEWAY_IGNITION_GATEWAY_NETWORK_REQUIRESSL:-false}
+      GATEWAY_NETWORK_ALLOWINCOMING: ${EDGE_GATEWAY_IGNITION_GATEWAY_NETWORK_ALLOWINCOMING:-true}
+      # Module Configuration
+      GATEWAY_MODULES_ENABLED: ${EDGE_GATEWAY_GATEWAY_MODULES_ENABLED:-all}
+      # Memory Settings
+      GATEWAY_INIT_MEMORY: ${EDGE_GATEWAY_GATEWAY_INIT_MEMORY:-512m}
+      GATEWAY_MAX_MEMORY: ${EDGE_GATEWAY_GATEWAY_MAX_MEMORY:-2048m}
+      # Activation/Licensing (can use IGNITION_EDGE_ACTIVATION_TOKEN_FILE for secrets)
+      IGNITION_ACTIVATION_TOKEN: ${EDGE_GATEWAY_IGNITION_ACTIVATION_TOKEN}
+      IGNITION_ACTIVATION_TOKEN_FILE: ${EDGE_GATEWAY_IGNITION_ACTIVATION_TOKEN_FILE:-}
+      # Feature Flags
+      DISABLE_QUICKSTART: ${EDGE_GATEWAY_DISABLE_QUICKSTART:-false}
+      # Security (optional, uncomment if using non-root user)
+      # IGNITION_UID: ${IGNITION_UID:-}
+      # IGNITION_GID: ${IGNITION_GID:-}
+    volumes:
+      - proveit-edge-ignition-gateway-data:/usr/local/bin/ignition/data
+    ports:
+      - "${EDGE_GATEWAY_IGNITION_GATEWAY_HTTP_PORT:-8092}:8088"
+      - "${EDGE_GATEWAY_IGNITION_GATEWAY_HTTPS_PORT:-8048}:8043"
+      - "${EDGE_GATEWAY_IGNITION_GATEWAY_GATEWAY_PORT:-8064}:8060"
+    networks:
+      - operations-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8088/StatusPing || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
+# =============================================================================
+# VOLUMES
+# =============================================================================
+
+volumes:
+  proveit-edge-ignition-gateway-data:

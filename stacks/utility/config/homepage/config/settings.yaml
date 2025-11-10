@@ -1,0 +1,51 @@
+---
+title: Abelara MES Dashboard
+
+# Branding
+favicon: https://gethomepage.dev/img/favicon.ico
+
+# Theme Configuration - Using Slate (closest to Abelara brand)
+theme: dark
+color: slate
+
+# Layout
+layout:
+  Core:
+    style: row
+    columns: 2
+  MES:
+    style: row
+    columns: 2
+  SCADA:
+    style: row
+    columns: 1
+  Edge:
+    style: row
+    columns: 1
+  Analytics:
+    style: row
+    columns: 1
+  Historian:
+    style: row
+    columns: 2
+  Utilities:
+    style: row
+    columns: 2
+  Help:
+    style: row
+    columns: 1
+
+background:
+  image: /images/background.png
+  brightness: 50
+  opacity: 50
+
+cardBlur: xs
+
+headerStyle: boxed
+hideVersion: true
+statusStyle: dot
+showStats: true
+quicklaunch:
+  searchDescriptions: true
+  hideInternetSearch: false

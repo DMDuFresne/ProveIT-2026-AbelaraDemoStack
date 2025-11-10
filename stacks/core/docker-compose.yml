@@ -1,0 +1,225 @@
+# =============================================================================
+# ProveIT 2026 Demo Stack - Core - Docker Compose Configuration
+# =============================================================================
+# Description: This file contains the configuration for the core edge services of
+# the ProveIT 2026 Demo Stack.
+#
+# It is used to deploy the core edge services using Docker Compose.
+#
+# =============================================================================
+
+# =============================================================================
+# MINIMAL SHARED CONFIGURATIONS
+# =============================================================================
+x-defaults: &defaults
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: 100m
+      max-file: "5"
+  security_opt:
+    - no-new-privileges:true
+
+x-common-environment: &common-environment
+  TZ: ${CORE_TZ:-America/Chicago}
+
+x-ignition-common: &ignition-common
+  # Common Ignition Gateway Configuration
+  # Admin password can be set via GATEWAY_ADMIN_PASSWORD or GATEWAY_ADMIN_PASSWORD_FILE (for secrets)
+  GATEWAY_ADMIN_PASSWORD: ${CORE_IGNITION_GATEWAY_ADMIN_PASSWORD}
+  GATEWAY_ADMIN_PASSWORD_FILE: ${CORE_IGNITION_GATEWAY_ADMIN_PASSWORD_FILE:-}
+  IGNITION_EDITION: ${CORE_IGNITION_EDITION:-standard}
+  # Security: Run as non-root user (optional, uncomment and set if needed)
+  # IGNITION_UID: ${IGNITION_UID:-}
+  # IGNITION_GID: ${IGNITION_GID:-}
+
+# =============================================================================
+# NETWORKS - Operations Network (Created by Core Stack)
+# =============================================================================
+
+networks:
+  operations-network:
+    name: operations-network
+    driver: bridge
+
+# =============================================================================
+# SERVICES
+# =============================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL Database Server - Central Database for All Ignition Gateways
+  # ---------------------------------------------------------------------------
+
+  postgres:
+    <<: *defaults
+    image: postgres:${CORE_POSTGRES_VERSION:-16-alpine}
+    container_name: proveit-postgres
+    hostname: postgres
+    environment:
+      <<: *common-environment
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${CORE_POSTGRES_PASSWORD}
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+      POSTGRES_CORE_PASSWORD: ${CORE_POSTGRES_CORE_PASSWORD}
+      POSTGRES_SCADA_PASSWORD: ${CORE_POSTGRES_SCADA_PASSWORD}
+      POSTGRES_MES_FRONTEND_PASSWORD: ${CORE_POSTGRES_MES_FRONTEND_PASSWORD}
+      POSTGRES_MES_BACKEND_PASSWORD: ${CORE_POSTGRES_MES_BACKEND_PASSWORD}
+      POSTGRES_MONITORING_PASSWORD: ${CORE_POSTGRES_MONITORING_PASSWORD:-MonitoringReadOnly2026!}
+    volumes:
+      - proveit-postgres-data:/var/lib/postgresql/data
+      - ./config/postgres/init:/docker-entrypoint-initdb.d:ro
+      - ./config/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+    ports:
+      - "${CORE_POSTGRES_PORT:-5432}:5432"
+    networks:
+      - operations-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+
+  # ---------------------------------------------------------------------------
+  # PgBouncer - Connection Pooler for PostgreSQL
+  # ---------------------------------------------------------------------------
+
+  pgbouncer:
+    <<: *defaults
+    image: edoburu/pgbouncer:${CORE_PGBOUNCER_VERSION:-latest}
+    container_name: proveit-pgbouncer
+    hostname: pgbouncer
+    environment:
+      <<: *common-environment
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: ${CORE_POSTGRES_PASSWORD}
+      DB_NAME: "*"
+      DATABASES_HOST: postgres
+      DATABASES_PORT: 5432
+      DATABASES_USER: postgres
+      DATABASES_PASSWORD: ${CORE_POSTGRES_PASSWORD}
+      DATABASES_DBNAME: "*"
+      AUTH_TYPE: scram-sha-256
+      AUTH_QUERY: SELECT usename, passwd FROM pg_shadow WHERE usename=$1
+      AUTH_USER: postgres
+      POOL_MODE: session
+      MAX_CLIENT_CONN: 200
+      DEFAULT_POOL_SIZE: 25
+      MIN_POOL_SIZE: 5
+      RESERVE_POOL_SIZE: 5
+      SERVER_LIFETIME: 3600
+      SERVER_IDLE_TIMEOUT: 600
+      LOG_CONNECTIONS: 1
+      LOG_DISCONNECTIONS: 1
+    ports:
+      - "${CORE_PGBOUNCER_PORT:-6432}:5432"
+    networks:
+      - operations-network
+    healthcheck:
+      test: ["CMD-SHELL", "PGPASSWORD=${CORE_POSTGRES_PASSWORD} psql -h localhost -p 5432 -U postgres -d postgres -c 'SELECT 1;' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------------------
+  # Core Gateway - Ignition
+  # ---------------------------------------------------------------------------
+
+  core-ignition-gateway:
+    <<: *defaults
+    image: inductiveautomation/ignition:${CORE_IGNITION_VERSION:-latest}
+    container_name: core-ignition-gateway
+    hostname: core-ignition-gateway
+    environment:
+      <<: [*common-environment, *ignition-common]
+      # EULA Acceptance
+      ACCEPT_IGNITION_EULA: Y
+      # Admin Credentials
+      GATEWAY_ADMIN_USERNAME: ${CORE_GATEWAY_ADMIN_USERNAME:-admin}
+      # Gateway Identification
+      GATEWAY_SYSTEM_NAME: ${CORE_IGNITION_GATEWAY_SYSTEM_NAME:-ProveIT-Gateway}
+      # Network Configuration
+      GATEWAY_NETWORK_UUID: ${CORE_IGNITION_GATEWAY_NETWORK_UUID}
+      GATEWAY_NETWORK_ENABLED: ${CORE_IGNITION_GATEWAY_NETWORK_ENABLED:-true}
+      GATEWAY_NETWORK_REQUIRESSL: ${CORE_IGNITION_GATEWAY_NETWORK_REQUIRESSL:-false}
+      GATEWAY_NETWORK_ALLOWINCOMING: ${CORE_IGNITION_GATEWAY_NETWORK_ALLOWINCOMING:-true}
+      # Module Configuration
+      GATEWAY_MODULES_ENABLED: ${CORE_GATEWAY_MODULES_ENABLED:-all}
+      # Memory Settings
+      GATEWAY_INIT_MEMORY: ${CORE_GATEWAY_INIT_MEMORY:-512m}
+      GATEWAY_MAX_MEMORY: ${CORE_GATEWAY_MAX_MEMORY:-2048m}
+      # Activation/Licensing (can use IGNITION_ACTIVATION_TOKEN_FILE for secrets)
+      IGNITION_ACTIVATION_TOKEN: ${CORE_IGNITION_ACTIVATION_TOKEN}
+      IGNITION_ACTIVATION_TOKEN_FILE: ${CORE_IGNITION_ACTIVATION_TOKEN_FILE:-}
+      # Feature Flags
+      DISABLE_QUICKSTART: ${CORE_DISABLE_QUICKSTART:-false}
+      # Security (optional, uncomment if using non-root user)
+      # IGNITION_UID: ${IGNITION_UID:-}
+      # IGNITION_GID: ${IGNITION_GID:-}
+    volumes:
+      - proveit-core-ignition-gateway-data:/usr/local/bin/ignition/data
+    ports:
+      - "${CORE_IGNITION_GATEWAY_HTTP_PORT:-8089}:8088"
+      - "${CORE_IGNITION_GATEWAY_HTTPS_PORT:-8045}:8043"
+      - "${CORE_IGNITION_GATEWAY_GATEWAY_PORT:-8061}:8060"
+    networks:
+      - operations-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8088/StatusPing || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------------------
+  # Highbyte Intelligence Hub - Data Transformation & Contextualization
+  # ---------------------------------------------------------------------------
+
+  highbyte:
+    <<: *defaults
+    image: highbyte:${CORE_HIGHBYTE_VERSION:-latest}
+    container_name: proveit-highbyte
+    hostname: highbyte
+    pull_policy: never
+    environment:
+      <<: *common-environment
+      HIGHBYTE_LICENSE_KEY: ${CORE_HIGHBYTE_LICENSE_KEY}
+      HIGHBYTE_ADMIN_PASSWORD: ${CORE_HIGHBYTE_ADMIN_PASSWORD}
+      HIGHBYTE_HOME: /usr/local/highbyte
+      HIGHBYTE_DATA_DIR: /usr/local/highbyte/appData
+    volumes:
+      - proveit-highbyte-data:/usr/local/highbyte/appData
+    ports:
+      - "${CORE_HIGHBYTE_WEB_PORT:-45245}:45245"
+      - "${CORE_HIGHBYTE_MQTT_PORT:-1885}:1885"
+      - "${CORE_HIGHBYTE_MQTTS_PORT:-8885}:8885"
+      - "${CORE_HIGHBYTE_OPC_PORT:-45345}:45345"
+    networks:
+      - operations-network
+    depends_on:
+      core-ignition-gateway:
+        condition: service_healthy
+
+# =============================================================================
+# VOLUMES
+# =============================================================================
+
+volumes:
+  proveit-postgres-data:
+  proveit-core-ignition-gateway-data:
+  proveit-highbyte-data:

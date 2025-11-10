@@ -1,0 +1,121 @@
+---
+# For configuration options and examples, please see:
+# https://gethomepage.dev/configs/services/
+
+- Core:
+    - Core Ignition Gateway:
+        icon: mdi-factory
+        href: http://localhost:8089
+        description: Core Ignition Gateway - SCADA/IIoT Platform
+        container: core-ignition-gateway
+    - Highbyte Intelligence Hub:
+        icon: mdi-cog-transfer
+        href: http://localhost:45245
+        description: Highbyte Intelligence Hub - Data transformation & contextualization
+        container: proveit-highbyte
+
+- MES:
+    - MES Backend Gateway:
+        icon: mdi-factory
+        href: http://localhost:8090
+        description: MES Ignition Backend Gateway - SCADA/IIoT Platform
+        container: mes-ignition-backend
+    - MES Frontend Gateway:
+        icon: mdi-factory
+        href: http://localhost:8088
+        description: MES Ignition Frontend Gateway - SCADA/IIoT Platform
+        container: mes-ignition-frontend
+
+- SCADA:
+    - SCADA Ignition Gateway:
+        icon: mdi-factory
+        href: http://localhost:8091
+        description: SCADA Ignition Gateway - SCADA/IIoT Platform
+        container: scada-ignition-gateway
+
+- Edge:
+    - Edge Ignition Gateway:
+        icon: mdi-factory
+        href: http://localhost:8092
+        description: Edge Ignition Gateway - Edge SCADA/IIoT Platform
+        container: edge-ignition-gateway
+
+# - Analytics:
+#     - Flow Bootstrap:
+#         icon: mdi-chart-timeline-variant
+#         href: http://localhost:4501
+#         description: Flow Bootstrap - Analytics platform bootstrap interface
+#         container: proveit-flow-bootstrap
+#     - Flow Platform:
+#         icon: mdi-chart-box
+#         href: http://localhost:80
+#         description: Flow Platform - Analytics platform
+#         container: proveit-flow-bootstrap
+
+- Historian:
+    - Timebase Historian:
+        icon: mdi-database-clock
+        href: http://localhost:4511
+        description: Timebase Historian - Time series data storage
+        container: proveit-historian
+    - Timebase Explorer:
+        icon: mdi-chart-line
+        href: http://localhost:4531
+        description: Timebase Explorer - Time series data explorer
+        container: proveit-explorer
+    - Timebase Collector 01:
+        icon: mdi-database-import
+        href: http://localhost:4521
+        description: Timebase Collector 01 - Data collection service
+        container: proveit-collector-01
+    - Timebase Collector 02:
+        icon: mdi-database-import
+        href: http://localhost:4522
+        description: Timebase Collector 02 - Data collection service
+        container: proveit-collector-02
+
+- Utilities:
+    - DBeaver:
+        icon: si-postgresql
+        href: http://localhost:8978
+        description: DBeaver CloudBeaver - Database administration
+        container: proveit-dbeaver
+    - MQTT Explorer:
+        icon: si-mqtt
+        href: http://localhost:4000
+        description: MQTT Explorer - MQTT broker explorer
+        container: proveit-mqtt-explorer
+
+- Help:
+    - Ignition Docs:
+        icon: mdi-book-open-variant
+        href: https://docs.inductiveautomation.com/
+        description: Official Ignition Documentation
+    - Timebase Docs:
+        icon: mdi-book-clock
+        href: https://timebase.flow-software.com/en/knowledge-base
+        description: Timebase Historian Documentation
+    - PostgreSQL Docs:
+        icon: mdi-database-outline
+        href: https://www.postgresql.org/docs/
+        description: PostgreSQL Database Documentation
+    - TimescaleDB Docs:
+        icon: mdi-database-settings
+        href: https://docs.timescale.com/
+        description: TimescaleDB Documentation
+    - Flow Software Docs:
+        icon: mdi-book-multiple
+        href: https://flow-software.com/documentation/
+        description: Flow Software Documentation
+    - Highbyte Docs:
+        icon: mdi-book-open-page-variant
+        href: https://docs.highbyte.io/
+        description: Highbyte Intelligence Hub Documentation
+    - DBeaver Docs:
+        icon: mdi-file-document
+        href: https://dbeaver.com/docs/
+        description: DBeaver Documentation
+    - Homepage Docs:
+        icon: mdi-home-circle
+        href: https://gethomepage.dev/
+        description: Homepage Dashboard Documentation

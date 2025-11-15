@@ -139,7 +139,7 @@ services:
 
   core-ignition-gateway:
     <<: *defaults
-    image: inductiveautomation/ignition:${CORE_IGNITION_VERSION:-latest}
+    image: inductiveautomation/ignition:${CORE_IGNITION_VERSION:-8.3}
     container_name: core-ignition-gateway
     hostname: core-ignition-gateway
     environment:
@@ -157,11 +157,13 @@ services:
       GATEWAY_NETWORK_ALLOWINCOMING: ${CORE_IGNITION_GATEWAY_NETWORK_ALLOWINCOMING:-true}
       # Module Configuration
       GATEWAY_MODULES_ENABLED: ${CORE_GATEWAY_MODULES_ENABLED:-all}
+      ACCEPT_MODULE_LICENSES: ${CORE_ACCEPT_MODULE_LICENSES}
+      ACCEPT_MODULE_CERTS: ${CORE_ACCEPT_MODULE_CERTS}
       # Memory Settings
       GATEWAY_INIT_MEMORY: ${CORE_GATEWAY_INIT_MEMORY:-512m}
       GATEWAY_MAX_MEMORY: ${CORE_GATEWAY_MAX_MEMORY:-2048m}
       # Activation/Licensing (can use IGNITION_ACTIVATION_TOKEN_FILE for secrets)
-      IGNITION_ACTIVATION_TOKEN: ${CORE_IGNITION_ACTIVATION_TOKEN}
+      IGNITION_ACTIVATION_TOKEN: ${CORE_IGNITION_ACTIVATION_TOKEN:-}
       IGNITION_ACTIVATION_TOKEN_FILE: ${CORE_IGNITION_ACTIVATION_TOKEN_FILE:-}
       # Feature Flags
       DISABLE_QUICKSTART: ${CORE_DISABLE_QUICKSTART:-false}

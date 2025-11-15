@@ -54,7 +54,7 @@ services:
 
   edge-ignition-gateway:
     <<: *defaults
-    image: inductiveautomation/ignition:${EDGE_GATEWAY_IGNITION_VERSION:-latest}
+    image: inductiveautomation/ignition:${EDGE_GATEWAY_IGNITION_VERSION:-8.3}
     container_name: edge-ignition-gateway
     hostname: edge-ignition-gateway
     environment:

@@ -124,7 +124,7 @@ services:
 
   mes-ignition-backend:
     <<: *defaults
-    image: inductiveautomation/ignition:${MES_IGNITION_BACKEND_VERSION:-latest}
+    image: inductiveautomation/ignition:${MES_IGNITION_BACKEND_VERSION:-8.3}
     container_name: mes-ignition-backend
     hostname: mes-ignition-backend
     environment:
@@ -174,7 +174,7 @@ services:
 
   mes-ignition-frontend:
     <<: *defaults
-    image: inductiveautomation/ignition:${MES_IGNITION_FRONTEND_VERSION:-latest}
+    image: inductiveautomation/ignition:${MES_IGNITION_FRONTEND_VERSION:-8.3}
     container_name: mes-ignition-frontend
     hostname: mes-ignition-frontend
     environment:

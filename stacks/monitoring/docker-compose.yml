@@ -1,0 +1,71 @@
+# =============================================================================
+# ProveIT 2026 Demo Stack - Monitoring - Docker Compose Configuration
+# =============================================================================
+# Description: This file contains the configuration for the Monitoring services of 
+# the ProveIT 2026 Demo Stack.
+# 
+# It is used to deploy the Monitoring services using Docker Compose.
+# 
+# =============================================================================
+
+# =============================================================================
+# MINIMAL SHARED CONFIGURATIONS
+# =============================================================================
+x-defaults: &defaults
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: 100m
+      max-file: "5"
+  security_opt:
+    - no-new-privileges:true
+
+x-common-environment: &common-environment
+  TZ: ${MONITORING_TZ:-America/Chicago}
+
+# =============================================================================
+# NETWORKS - External Network
+# =============================================================================
+
+networks:
+  operations-network:
+    external: true
+
+# =============================================================================
+# SERVICES
+# =============================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # Uptime Kuma - Uptime Monitoring
+  # ---------------------------------------------------------------------------
+
+  uptime-kuma:
+    <<: *defaults
+    image: louislam/uptime-kuma:${MONITORING_UPTIME_KUMA_VERSION:-latest}
+    container_name: monitoring-uptime-kuma
+    hostname: monitoring-uptime-kuma
+    environment:
+      <<: *common-environment
+    volumes:
+      - proveit-monitoring-uptime-kuma-data:/app/data
+    ports:
+      - "${MONITORING_UPTIME_KUMA_PORT:-3001}:3001"
+    networks:
+      - operations-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3001 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+# =============================================================================
+# VOLUMES
+# =============================================================================
+
+volumes:
+  proveit-monitoring-uptime-kuma-data:
+

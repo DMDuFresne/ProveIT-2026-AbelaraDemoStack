@@ -54,7 +54,7 @@ services:
 
   scada-ignition-gateway:
     <<: *defaults
-    image: inductiveautomation/ignition:${SCADA_IGNITION_VERSION:-latest}
+    image: inductiveautomation/ignition:${SCADA_IGNITION_VERSION:-8.3}
     container_name: scada-ignition-gateway
     hostname: scada-ignition-gateway
     environment:

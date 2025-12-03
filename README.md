@@ -11,7 +11,9 @@
 <br>
 
 <p align="center">
-  <img src="docs/images/abelara-logo.svg" alt="Abelara" width="200">
+  <a href="https://abelara.com">
+    <img src="docs/images/abelara-logo.svg" alt="Abelara" width="200">
+  </a>
 </p>
 
 <p align="center">

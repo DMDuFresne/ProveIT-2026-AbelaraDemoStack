@@ -25,11 +25,13 @@ x-common-environment: &common-environment
   TZ: ${MONITORING_TZ:-America/Chicago}
 
 # =============================================================================
-# NETWORKS - External Network
+# NETWORKS - External Networks
 # =============================================================================
 
 networks:
   operations-network:
+    external: true
+  routing-network:
     external: true
 
 # =============================================================================
@@ -42,10 +44,10 @@ services:
   # Uptime Kuma - Uptime Monitoring
   # ---------------------------------------------------------------------------
 
-  uptime-kuma:
+  monitoring-uptime-kuma:
     <<: *defaults
     image: louislam/uptime-kuma:${MONITORING_UPTIME_KUMA_VERSION:-latest}
-    container_name: monitoring-uptime-kuma
+    container_name: proveit-monitoring-uptime-kuma
     hostname: monitoring-uptime-kuma
     environment:
       <<: *common-environment
@@ -55,12 +57,61 @@ services:
       - "${MONITORING_UPTIME_KUMA_PORT:-3001}:3001"
     networks:
       - operations-network
+      - routing-network
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:3001 || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 60s
+
+  # ---------------------------------------------------------------------------
+  # Nginx Reverse Proxy - Path Rewriting for Cloudflare Tunnel
+  # ---------------------------------------------------------------------------
+
+  monitoring-nginx:
+    <<: *defaults
+    image: nginx:${MONITORING_NGINX_VERSION:-alpine}
+    container_name: proveit-monitoring-nginx
+    hostname: monitoring-nginx
+    volumes:
+      - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "${MONITORING_NGINX_PORT:-8085}:80"
+    networks:
+      - operations-network
+      - routing-network
+    depends_on:
+      monitoring-uptime-kuma:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1/nginx-health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ---------------------------------------------------------------------------
+  # Cloudflare Tunnel - External Access
+  # ---------------------------------------------------------------------------
+
+  monitoring-cloudflared:
+    <<: *defaults
+    image: cloudflare/cloudflared:latest
+    container_name: proveit-monitoring-cloudflared
+    hostname: monitoring-cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${MONITORING_CLOUDFLARE_TUNNEL_TOKEN}
+    networks:
+      - routing-network
+    depends_on:
+      monitoring-nginx:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
 
 # =============================================================================
 # VOLUMES

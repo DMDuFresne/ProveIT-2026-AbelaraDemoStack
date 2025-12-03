@@ -35,12 +35,15 @@ x-ignition-common: &ignition-common
   # IGNITION_GID: ${IGNITION_GID:-}
 
 # =============================================================================
-# NETWORKS - Operations Network (Created by Core Stack)
+# NETWORKS - Created by Core Stack (shared by all stacks)
 # =============================================================================
 
 networks:
   operations-network:
     name: operations-network
+    driver: bridge
+  routing-network:
+    name: routing-network
     driver: bridge
 
 # =============================================================================
@@ -53,11 +56,11 @@ services:
   # PostgreSQL Database Server - Central Database for All Ignition Gateways
   # ---------------------------------------------------------------------------
 
-  postgres:
+  core-postgres:
     <<: *defaults
     image: postgres:${CORE_POSTGRES_VERSION:-16-alpine}
-    container_name: proveit-postgres
-    hostname: postgres
+    container_name: proveit-core-postgres
+    hostname: core-postgres
     environment:
       <<: *common-environment
       POSTGRES_DB: postgres
@@ -71,11 +74,11 @@ services:
       POSTGRES_MES_BACKEND_PASSWORD: ${CORE_POSTGRES_MES_BACKEND_PASSWORD}
       POSTGRES_MONITORING_PASSWORD: ${CORE_POSTGRES_MONITORING_PASSWORD:-MonitoringReadOnly2026!}
     volumes:
-      - proveit-postgres-data:/var/lib/postgresql/data
+      - proveit-core-postgres-data:/var/lib/postgresql/data
       - ./config/postgres/init:/docker-entrypoint-initdb.d:ro
       - ./config/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
     ports:
-      - "${CORE_POSTGRES_PORT:-5432}:5432"
+      - "127.0.0.1:${CORE_POSTGRES_PORT:-5432}:5432"
     networks:
       - operations-network
     healthcheck:
@@ -90,19 +93,19 @@ services:
   # PgBouncer - Connection Pooler for PostgreSQL
   # ---------------------------------------------------------------------------
 
-  pgbouncer:
+  core-pgbouncer:
     <<: *defaults
     image: edoburu/pgbouncer:${CORE_PGBOUNCER_VERSION:-latest}
-    container_name: proveit-pgbouncer
-    hostname: pgbouncer
+    container_name: proveit-core-pgbouncer
+    hostname: core-pgbouncer
     environment:
       <<: *common-environment
-      DB_HOST: postgres
+      DB_HOST: core-postgres
       DB_PORT: 5432
       DB_USER: postgres
       DB_PASSWORD: ${CORE_POSTGRES_PASSWORD}
       DB_NAME: "*"
-      DATABASES_HOST: postgres
+      DATABASES_HOST: core-postgres
       DATABASES_PORT: 5432
       DATABASES_USER: postgres
       DATABASES_PASSWORD: ${CORE_POSTGRES_PASSWORD}
@@ -120,7 +123,7 @@ services:
       LOG_CONNECTIONS: 1
       LOG_DISCONNECTIONS: 1
     ports:
-      - "${CORE_PGBOUNCER_PORT:-6432}:5432"
+      - "127.0.0.1:${CORE_PGBOUNCER_PORT:-6432}:5432"
     networks:
       - operations-network
     healthcheck:
@@ -130,7 +133,7 @@ services:
       retries: 3
       start_period: 30s
     depends_on:
-      postgres:
+      core-postgres:
         condition: service_healthy
 
   # ---------------------------------------------------------------------------
@@ -140,7 +143,7 @@ services:
   core-ignition-gateway:
     <<: *defaults
     image: inductiveautomation/ignition:${CORE_IGNITION_VERSION:-8.3}
-    container_name: core-ignition-gateway
+    container_name: proveit-core-ignition-gateway
     hostname: core-ignition-gateway
     environment:
       <<: [*common-environment, *ignition-common]
@@ -185,18 +188,18 @@ services:
       retries: 3
       start_period: 120s
     depends_on:
-      pgbouncer:
+      core-pgbouncer:
         condition: service_healthy
 
   # ---------------------------------------------------------------------------
   # Highbyte Intelligence Hub - Data Transformation & Contextualization
   # ---------------------------------------------------------------------------
 
-  highbyte:
+  core-highbyte:
     <<: *defaults
     image: highbyte:${CORE_HIGHBYTE_VERSION:-latest}
-    container_name: proveit-highbyte
-    hostname: highbyte
+    container_name: proveit-core-highbyte
+    hostname: core-highbyte
     pull_policy: never
     environment:
       <<: *common-environment
@@ -205,23 +208,74 @@ services:
       HIGHBYTE_HOME: /usr/local/highbyte
       HIGHBYTE_DATA_DIR: /usr/local/highbyte/appData
     volumes:
-      - proveit-highbyte-data:/usr/local/highbyte/appData
+      - proveit-core-highbyte-data:/usr/local/highbyte/appData
     ports:
-      - "${CORE_HIGHBYTE_WEB_PORT:-45245}:45245"
-      - "${CORE_HIGHBYTE_MQTT_PORT:-1885}:1885"
-      - "${CORE_HIGHBYTE_MQTTS_PORT:-8885}:8885"
-      - "${CORE_HIGHBYTE_OPC_PORT:-45345}:45345"
+      - "${CORE_HIGHBYTE_WEB_PORT:-45245}:45245" # REST API used for configuration.
     networks:
       - operations-network
     depends_on:
       core-ignition-gateway:
         condition: service_healthy
 
+  # ---------------------------------------------------------------------------
+  # Nginx Reverse Proxy - Path Rewriting for Cloudflare Tunnel
+  # ---------------------------------------------------------------------------
+
+  core-nginx:
+    <<: *defaults
+    image: nginx:${CORE_NGINX_VERSION:-alpine}
+    container_name: proveit-core-nginx
+    hostname: core-nginx
+    volumes:
+      - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "${CORE_NGINX_PORT:-8080}:80"
+    networks:
+      operations-network:
+      routing-network:
+        aliases:
+          - nginx
+    depends_on:
+      core-ignition-gateway:
+        condition: service_healthy
+      core-highbyte:
+        condition: service_started
+    healthcheck:
+      # Check if nginx is responding
+      # Use /nginx-health which is available on default server block
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1/nginx-health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ---------------------------------------------------------------------------
+  # Cloudflare Tunnel - External Access
+  # ---------------------------------------------------------------------------
+
+  core-cloudflared:
+    <<: *defaults
+    image: cloudflare/cloudflared:latest
+    container_name: proveit-core-cloudflared
+    hostname: core-cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${CORE_CLOUDFLARE_TUNNEL_TOKEN}
+    networks:
+      - routing-network
+    depends_on:
+      core-nginx:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
 # =============================================================================
 # VOLUMES
 # =============================================================================
 
 volumes:
-  proveit-postgres-data:
+  proveit-core-postgres-data:
   proveit-core-ignition-gateway-data:
-  proveit-highbyte-data:
+  proveit-core-highbyte-data:

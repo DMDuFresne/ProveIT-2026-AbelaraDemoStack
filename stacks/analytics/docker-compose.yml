@@ -42,12 +42,12 @@ services:
   # MSSQL - Flow Software Backend Database
   # ---------------------------------------------------------------------------
 
-  mssql:
+  analytics-mssql:
     <<: *defaults
     user: "0:0"  # Run as root to avoid volume permission issues on Windows
     image: mcr.microsoft.com/mssql/server:${ANALYTICS_MSSQL_VERSION:-2022-latest}
-    container_name: proveit-mssql
-    hostname: mssql
+    container_name: proveit-analytics-mssql
+    hostname: analytics-mssql
     environment:
       <<: *common-environment
       ACCEPT_EULA: Y
@@ -72,16 +72,16 @@ services:
   # Flow Bootstrap - Analytics Platform
   # ---------------------------------------------------------------------------
 
-  flow-bootstrap:
+  analytics-flow-bootstrap:
     <<: *defaults
     image: flowsoftwareinc/flowbootstrap:${ANALYTICS_FLOW_VERSION:-latest}
-    container_name: proveit-flow-bootstrap
-    hostname: ${ANALYTICS_FLOW_HOSTNAME:-flow-proveit-01}
+    container_name: proveit-analytics-flow-bootstrap
+    hostname: analytics-flow-bootstrap
     environment:
       <<: *common-environment
       FLOW_PLATFORM_NAME: ${ANALYTICS_FLOW_PLATFORM_NAME}
       FLOW_ADMIN_PASSWORD: ${ANALYTICS_FLOW_ADMIN_PASSWORD}
-      FLOW_DB_SERVER: mssql
+      FLOW_DB_SERVER: analytics-mssql
       FLOW_DB_PORT: 1433
       FLOW_DB_NAME: ${ANALYTICS_FLOW_DB_NAME:-FlowSoftware}
       FLOW_DB_USERNAME: sa
@@ -101,7 +101,7 @@ services:
     networks:
       - operations-network
     depends_on:
-      mssql:
+      analytics-mssql:
         condition: service_healthy
 
 # =============================================================================

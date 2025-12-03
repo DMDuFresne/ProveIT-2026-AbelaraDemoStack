@@ -29,7 +29,7 @@ x-collector-common: &collector-common
   networks:
     - timebase-network
   depends_on:
-    - timebase-historian
+    - historian-timebase
 
 # =============================================================================
 # NETWORKS
@@ -51,18 +51,18 @@ services:
   # Timebase Historian - Time Series Database
   # ---------------------------------------------------------------------------
 
-  timebase-historian:
+  historian-timebase:
     <<: *defaults
     image: timebase/historian:${HISTORIAN_HISTORIAN_TAG:-latest}
-    container_name: proveit-historian
-    hostname: ${HISTORIAN_HISTORIAN_HOSTNAME:-historian}
+    container_name: proveit-historian-timebase
+    hostname: historian-timebase
     environment:
       <<: *common-environment
       Settings: /historian/settings
       Data: /historian/data
       Logs: /historian/logs
     volumes:
-      - proveit-historian-data:/historian
+      - proveit-historian-timebase-data:/historian
     ports:
       - "${HISTORIAN_HISTORIAN_PORT:-4511}:4511"
     networks:
@@ -72,26 +72,26 @@ services:
   # Timebase Explorer - Historian Web Interface
   # ---------------------------------------------------------------------------
 
-  timebase-explorer:
+  historian-explorer:
     <<: *defaults
     image: timebase/explorer:${HISTORIAN_EXPLORER_TAG:-latest}
-    container_name: proveit-explorer
-    hostname: ${HISTORIAN_EXPLORER_HOSTNAME:-explorer}
+    container_name: proveit-historian-explorer
+    hostname: historian-explorer
     environment:
       <<: *common-environment
       Settings: /explorer/settings
       Config: /explorer/config
       Data: /explorer/data
       Logs: /explorer/logs
-      HISTORIAN_HOST: ${HISTORIAN_HISTORIAN_HOSTNAME:-historian}
+      HISTORIAN_HOST: historian-timebase
     volumes:
-      - proveit-explorer-data:/explorer
+      - proveit-historian-explorer-data:/explorer
     ports:
       - "${HISTORIAN_EXPLORER_PORT:-4531}:4531"
     networks:
       - timebase-network
     depends_on:
-      - timebase-historian
+      - historian-timebase
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
@@ -101,7 +101,7 @@ services:
           "Historians": {
             "Local": {
               "Name": "Local",
-              "Host": "${HISTORIAN_HISTORIAN_HOSTNAME:-historian}",
+              "Host": "historian-timebase",
               "Port": 4511,
               "UseTls": false,
               "Auth": {
@@ -124,10 +124,10 @@ services:
   # Timebase Collector 01 - Data Collection Service
   # ---------------------------------------------------------------------------
 
-  timebase-collector-01:
+  historian-collector-01:
     <<: [*defaults, *collector-common]
-    container_name: proveit-collector-01
-    hostname: ${HISTORIAN_COLLECTOR_01_HOSTNAME:-collector-01}
+    container_name: proveit-historian-collector-01
+    hostname: historian-collector-01
     environment:
       <<: *common-environment
       Active: ${HISTORIAN_COLLECTOR_01_ACTIVE:-false}
@@ -138,16 +138,16 @@ services:
     ports:
       - "${HISTORIAN_COLLECTOR_01_PORT:-4521}:4521"
     volumes:
-      - proveit-collector-01-data:/collector
+      - proveit-historian-collector-01-data:/collector
 
   # ---------------------------------------------------------------------------
   # Timebase Collector 02 - Data Collection Service
   # ---------------------------------------------------------------------------
 
-  timebase-collector-02:
+  historian-collector-02:
     <<: [*defaults, *collector-common]
-    container_name: proveit-collector-02
-    hostname: ${HISTORIAN_COLLECTOR_02_HOSTNAME:-collector-02}
+    container_name: proveit-historian-collector-02
+    hostname: historian-collector-02
     environment:
       <<: *common-environment
       Active: ${HISTORIAN_COLLECTOR_02_ACTIVE:-false}
@@ -156,16 +156,40 @@ services:
       Data: /collector/data
       Logs: /collector/logs
     ports:
-      - "${HISTORIAN_COLLECTOR_02_PORT:-4522}:4521"
+      - "${HISTORIAN_COLLECTOR_02_PORT:-4522}:4522"
     volumes:
-      - proveit-collector-02-data:/collector
+      - proveit-historian-collector-02-data:/collector
+
+  # ---------------------------------------------------------------------------
+  # Nginx Reverse Proxy - Local Access
+  # ---------------------------------------------------------------------------
+
+  historian-nginx:
+    <<: *defaults
+    image: nginx:${HISTORIAN_NGINX_VERSION:-alpine}
+    container_name: proveit-historian-nginx
+    hostname: historian-nginx
+    volumes:
+      - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "${HISTORIAN_NGINX_PORT:-8086}:80"
+    networks:
+      - timebase-network
+    depends_on:
+      - historian-explorer
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1/nginx-health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
 # =============================================================================
 # VOLUMES
 # =============================================================================
 
 volumes:
-  proveit-historian-data:
-  proveit-collector-01-data:
-  proveit-collector-02-data:
-  proveit-explorer-data:
+  proveit-historian-timebase-data:
+  proveit-historian-explorer-data:
+  proveit-historian-collector-01-data:
+  proveit-historian-collector-02-data:

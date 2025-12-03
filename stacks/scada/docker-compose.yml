@@ -35,11 +35,13 @@ x-ignition-common: &ignition-common
   # IGNITION_GID: ${IGNITION_GID:-}
 
 # =============================================================================
-# NETWORKS - External Network
+# NETWORKS - External Networks
 # =============================================================================
 
 networks:
   operations-network:
+    external: true
+  routing-network:
     external: true
 
 # =============================================================================
@@ -55,7 +57,7 @@ services:
   scada-ignition-gateway:
     <<: *defaults
     image: inductiveautomation/ignition:${SCADA_IGNITION_VERSION:-8.3}
-    container_name: scada-ignition-gateway
+    container_name: proveit-scada-ignition-gateway
     hostname: scada-ignition-gateway
     environment:
       <<: [*common-environment, *ignition-common]
@@ -97,6 +99,54 @@ services:
       timeout: 10s
       retries: 3
       start_period: 120s
+
+  # ---------------------------------------------------------------------------
+  # Nginx Reverse Proxy - Path Rewriting for Cloudflare Tunnel
+  # ---------------------------------------------------------------------------
+
+  scada-nginx:
+    <<: *defaults
+    image: nginx:${SCADA_NGINX_VERSION:-alpine}
+    container_name: proveit-scada-nginx
+    hostname: scada-nginx
+    volumes:
+      - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "${SCADA_NGINX_PORT:-8084}:80"
+    networks:
+      - operations-network
+      - routing-network
+    depends_on:
+      scada-ignition-gateway:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1/nginx-health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ---------------------------------------------------------------------------
+  # Cloudflare Tunnel - External Access
+  # ---------------------------------------------------------------------------
+
+  scada-cloudflared:
+    <<: *defaults
+    image: cloudflare/cloudflared:latest
+    container_name: proveit-scada-cloudflared
+    hostname: scada-cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${SCADA_CLOUDFLARE_TUNNEL_TOKEN}
+    networks:
+      - routing-network
+    depends_on:
+      scada-nginx:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
 
 # =============================================================================
 # VOLUMES

@@ -255,3 +255,20 @@ secrets/
 # yarn.lock
 # Pipfile.lock
 # poetry.lock
+
+# =============================================================================
+# Other Stuff...
+# =============================================================================
+.playwright-mcp/
+.claude/
+.cursor/
+.vscode/
+.idea/
+.project/
+.classpath/
+.settings/
+.launch/
+.sublime-project/
+.sublime-workspace/
+.vim/
+.emacs/

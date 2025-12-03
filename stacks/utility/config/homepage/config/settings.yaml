@@ -1,6 +1,11 @@
 ---
 title: Abelara MES Dashboard
 
+# Allow access from Cloudflare tunnel domains
+allowedHosts:
+  - homepage.utility.abelara.cloud
+  - localhost
+
 # Branding
 favicon: https://gethomepage.dev/img/favicon.ico
 

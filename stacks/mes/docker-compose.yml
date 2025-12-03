@@ -35,11 +35,13 @@ x-ignition-common: &ignition-common
   # IGNITION_GID: ${IGNITION_GID:-}
 
 # =============================================================================
-# NETWORKS - External Network
+# NETWORKS - External Networks
 # =============================================================================
 
 networks:
   operations-network:
+    external: true
+  routing-network:
     external: true
 
 # =============================================================================
@@ -52,11 +54,11 @@ services:
   # MES Database - TimescaleDB
   # ---------------------------------------------------------------------------
 
-  database:
+  mes-timescaledb:
     <<: *defaults
     image: timescale/timescaledb:${MES_TIMESCALEDB_VERSION:-latest-pg17}
-    container_name: mes-database
-    hostname: timescaledb
+    container_name: proveit-mes-timescaledb
+    hostname: mes-timescaledb
     environment:
       <<: *common-environment
       POSTGRES_DB: proveit-mes
@@ -65,7 +67,7 @@ services:
       POSTGRES_HOST_AUTH_METHOD: scram-sha-256
       POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
     volumes:
-      - proveit-mes-database-data:/var/lib/postgresql/data
+      - proveit-mes-timescaledb-data:/var/lib/postgresql/data
       - ./config/database/creation:/docker-entrypoint-initdb.d:ro
     ports:
       - "${MES_TIMESCALE_PORT:-5433}:5432"
@@ -82,14 +84,14 @@ services:
   # MES Connection Pooler - PgBouncer
   # ---------------------------------------------------------------------------
 
-  pooler:
+  mes-pgbouncer:
     <<: *defaults
     image: edoburu/pgbouncer:${MES_PGBOUNCER_VERSION:-latest}
-    container_name: mes-pooler
-    hostname: mes-pooler
+    container_name: proveit-mes-pgbouncer
+    hostname: mes-pgbouncer
     environment:
       <<: *common-environment
-      DATABASE_URL: postgres://postgres:${MES_POSTGRES_PASSWORD}@database:5432/proveit-mes
+      DATABASE_URL: postgres://postgres:${MES_POSTGRES_PASSWORD}@mes-timescaledb:5432/proveit-mes
       AUTH_TYPE: scram-sha-256
       AUTH_FILE: /etc/pgbouncer/userlist.txt
       AUTH_QUERY: SELECT usename, passwd FROM pg_shadow WHERE usename=$1
@@ -115,7 +117,7 @@ services:
       retries: 3
       start_period: 30s
     depends_on:
-      database:
+      mes-timescaledb:
         condition: service_healthy
 
   # ---------------------------------------------------------------------------
@@ -125,7 +127,7 @@ services:
   mes-ignition-backend:
     <<: *defaults
     image: inductiveautomation/ignition:${MES_IGNITION_BACKEND_VERSION:-8.3}
-    container_name: mes-ignition-backend
+    container_name: proveit-mes-ignition-backend
     hostname: mes-ignition-backend
     environment:
       <<: [*common-environment, *ignition-common]
@@ -172,11 +174,11 @@ services:
   # MES Frontend - Ignition
   # ---------------------------------------------------------------------------
 
-  mes-ignition-frontend:
+  mes-ignition-frontend-01:
     <<: *defaults
     image: inductiveautomation/ignition:${MES_IGNITION_FRONTEND_VERSION:-8.3}
-    container_name: mes-ignition-frontend
-    hostname: mes-ignition-frontend
+    container_name: proveit-mes-ignition-frontend-01
+    hostname: mes-ignition-frontend-01
     environment:
       <<: [*common-environment, *ignition-common]
       # EULA Acceptance
@@ -218,11 +220,61 @@ services:
       retries: 3
       start_period: 120s
 
+  # ---------------------------------------------------------------------------
+  # Nginx Reverse Proxy - Path Rewriting for Cloudflare Tunnel
+  # ---------------------------------------------------------------------------
+
+  mes-nginx:
+    <<: *defaults
+    image: nginx:${MES_NGINX_VERSION:-alpine}
+    container_name: proveit-mes-nginx
+    hostname: mes-nginx
+    volumes:
+      - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "${MES_NGINX_PORT:-8083}:80"
+    networks:
+      - operations-network
+      - routing-network
+    depends_on:
+      mes-ignition-backend:
+        condition: service_healthy
+      mes-ignition-frontend-01:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1/nginx-health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ---------------------------------------------------------------------------
+  # Cloudflare Tunnel - External Access
+  # ---------------------------------------------------------------------------
+
+  mes-cloudflared:
+    <<: *defaults
+    image: cloudflare/cloudflared:latest
+    container_name: proveit-mes-cloudflared
+    hostname: mes-cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${MES_CLOUDFLARE_TUNNEL_TOKEN}
+    networks:
+      - routing-network
+    depends_on:
+      mes-nginx:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
 # =============================================================================
 # VOLUMES
 # =============================================================================
 
 volumes:
-  proveit-mes-database-data:
+  proveit-mes-timescaledb-data:
   proveit-mes-ignition-backend-data:
   proveit-mes-ignition-frontend-data:

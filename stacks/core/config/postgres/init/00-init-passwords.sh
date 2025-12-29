@@ -66,6 +66,8 @@ REQUIRED_VARS=(
     "CORE_POSTGRES_SCADA_PASSWORD"
     "CORE_POSTGRES_MES_FRONTEND_PASSWORD"
     "CORE_POSTGRES_MES_BACKEND_PASSWORD"
+    "CORE_POSTGRES_EDGE_PASSWORD"
+    "CORE_POSTGRES_SHARED_PASSWORD"
 )
 
 ALL_VALID=true
@@ -101,6 +103,8 @@ SELECT set_config('app.core_password', '${CORE_POSTGRES_CORE_PASSWORD}', false);
 SELECT set_config('app.scada_password', '${CORE_POSTGRES_SCADA_PASSWORD}', false);
 SELECT set_config('app.mes_frontend_password', '${CORE_POSTGRES_MES_FRONTEND_PASSWORD}', false);
 SELECT set_config('app.mes_backend_password', '${CORE_POSTGRES_MES_BACKEND_PASSWORD}', false);
+SELECT set_config('app.edge_password', '${CORE_POSTGRES_EDGE_PASSWORD}', false);
+SELECT set_config('app.shared_password', '${CORE_POSTGRES_SHARED_PASSWORD}', false);
 SELECT set_config('app.monitoring_password', '${CORE_POSTGRES_MONITORING_PASSWORD:-password}', false);
 EOF
 
@@ -190,6 +194,17 @@ Databases and Users:
    User: ignition_mes_backend
    Password: (set via CORE_POSTGRES_MES_BACKEND_PASSWORD environment variable)
    JDBC URL: jdbc:postgresql://postgres:5432/ignition_mes_backend
+
+5. Database: ignition_edge
+   User: ignition_edge
+   Password: (set via CORE_POSTGRES_EDGE_PASSWORD environment variable)
+   JDBC URL: jdbc:postgresql://postgres:5432/ignition_edge
+
+6. Database: ignition_shared (SHARED - Read access for all gateways)
+   User: ignition_shared (OWNER - full write access)
+   Password: (set via CORE_POSTGRES_SHARED_PASSWORD environment variable)
+   JDBC URL: jdbc:postgresql://postgres:5432/ignition_shared
+   Note: All gateway users have READ access to this database
 
 Monitoring User:
 ----------------

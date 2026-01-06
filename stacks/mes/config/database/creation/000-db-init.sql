@@ -239,6 +239,20 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA mes_core
 GRANT EXECUTE ON FUNCTIONS TO mes_user;
 
 -- ===============================================================
+-- mes_audit Schema Permissions for mes_user
+-- Description: Allow mes_user to write audit logs via triggers
+-- ===============================================================
+
+GRANT USAGE ON SCHEMA mes_audit TO mes_user;
+GRANT INSERT, UPDATE ON ALL TABLES IN SCHEMA mes_audit TO mes_user;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA mes_audit TO mes_user;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA mes_audit
+GRANT INSERT, UPDATE ON TABLES TO mes_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA mes_audit
+GRANT USAGE, SELECT ON SEQUENCES TO mes_user;
+
+-- ===============================================================
 -- Core Trigger Functions
 -- ===============================================================
 

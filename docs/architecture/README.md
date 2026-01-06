@@ -26,9 +26,9 @@ Quick reference table for all services (excluding Nginx and Cloudflare Tunnel):
 | **Analytics** | Flow Bootstrap | `proveit-analytics-flow-bootstrap` | `4501`, `80`, `443` | Analytics Platform |
 | **Core** | PostgreSQL | `proveit-core-postgres` | `5432` (localhost) | Central Database for All Ignition Gateways |
 | **Core** | PgBouncer | `proveit-core-pgbouncer` | `6432` (localhost) | Connection Pooler for PostgreSQL |
-| **Core** | Ignition Gateway | `proveit-core-ignition-gateway` | `8089`, `8045`, `8061` | Core Gateway - Ignition |
+| **Core** | Ignition Gateway | `proveit-core-ignition-gateway` | `47000`, `47001`, `47002` | Core Gateway - Ignition |
 | **Core** | Highbyte Intelligence Hub | `proveit-core-highbyte` | `45245` | Data Transformation & Contextualization |
-| **Edge** | Ignition Edge Gateway | `proveit-edge-ignition-gateway-01` | `8092`, `8048`, `8064` | Ignition Edge Gateway |
+| **Edge** | Ignition Edge Gateway | `proveit-edge-ignition-gateway-01` | `47040`, `47041`, `47042` | Ignition Edge Gateway |
 | **Edge** | Fuuz Device Gateway | `proveit-edge-fuuz-gateway` | `5500-5550` | Fuuz Device Gateway |
 | **Historian** | Timebase Historian | `proveit-historian-timebase` | `4511` | Time Series Database |
 | **Historian** | Timebase Explorer | `proveit-historian-explorer` | `4531` | Historian Web Interface |
@@ -36,10 +36,10 @@ Quick reference table for all services (excluding Nginx and Cloudflare Tunnel):
 | **Historian** | Timebase Collector 02 | `proveit-historian-collector-02` | `4522` | Data Collection Service |
 | **MES** | TimescaleDB | `proveit-mes-timescaledb` | `5433` | MES Database |
 | **MES** | PgBouncer | `proveit-mes-pgbouncer` | `6433` | Connection Pooler for TimescaleDB |
-| **MES** | Ignition Backend | `proveit-mes-ignition-backend` | `8090`, `8047`, `8062` | MES Backend - Ignition |
-| **MES** | Ignition Frontend | `proveit-mes-ignition-frontend-01` | `8088`, `8043`, `8060` | MES Frontend - Ignition |
+| **MES** | Ignition Backend | `proveit-mes-ignition-backend` | `47010`, `47011`, `47012` | MES Backend - Ignition |
+| **MES** | Ignition Frontend | `proveit-mes-ignition-frontend-01` | `47020`, `47021`, `47022` | MES Frontend - Ignition |
 | **Monitoring** | Uptime Kuma | `proveit-monitoring-uptime-kuma` | `3001` | Uptime Monitoring |
-| **SCADA** | Ignition Gateway | `proveit-scada-ignition-gateway` | `8091`, `8046`, `8063` | SCADA Gateway - Ignition |
+| **SCADA** | Ignition Gateway | `proveit-scada-ignition-gateway` | `47030`, `47031`, `47032` | SCADA Gateway - Ignition |
 | **Utility** | Docker Socket Proxy | `proveit-utility-docker-socket-proxy` | - | Secure Docker API Access (internal) |
 | **Utility** | Homepage | `proveit-utility-homepage` | `3000` | Web Dashboard |
 | **Utility** | DBeaver | `proveit-utility-dbeaver` | `8978` | Database Management Tool |
@@ -83,7 +83,7 @@ Quick reference table for all services (excluding Nginx and Cloudflare Tunnel):
 |---------------|--------------|--------------|-------------------|-------------|
 | `proveit-core-postgres` | `core-postgres` | `127.0.0.1:5432` (default) | `5432` | PostgreSQL Database Server - Central Database for All Ignition Gateways |
 | `proveit-core-pgbouncer` | `core-pgbouncer` | `127.0.0.1:6432` (default) | `5432` | PgBouncer - Connection Pooler for PostgreSQL |
-| `proveit-core-ignition-gateway` | `core-ignition-gateway` | `8089` (default)<br>`8045` (default)<br>`8061` (default) | `8088`<br>`8043`<br>`8060` | Core Gateway - Ignition |
+| `proveit-core-ignition-gateway` | `core-ignition-gateway` | `47000` (default)<br>`47001` (default)<br>`47002` (default) | `8088`<br>`8043`<br>`8060` | Core Gateway - Ignition |
 | `proveit-core-highbyte` | `core-highbyte` | `45245` (default) | `45245` | Highbyte Intelligence Hub - Data Transformation & Contextualization |
 | `proveit-core-nginx` | `core-nginx` | `8080` (default) | `80` | Nginx Reverse Proxy - Path Rewriting for Cloudflare Tunnel |
 | `proveit-core-cloudflared` | `core-cloudflared` | - | - | Cloudflare Tunnel - External Access (no exposed ports) |
@@ -91,9 +91,9 @@ Quick reference table for all services (excluding Nginx and Cloudflare Tunnel):
 **Environment Variables:**
 - `CORE_POSTGRES_PORT` (default: `5432`)
 - `CORE_PGBOUNCER_PORT` (default: `6432`)
-- `CORE_IGNITION_GATEWAY_HTTP_PORT` (default: `8089`)
-- `CORE_IGNITION_GATEWAY_HTTPS_PORT` (default: `8045`)
-- `CORE_IGNITION_GATEWAY_GATEWAY_PORT` (default: `8061`)
+- `CORE_IGNITION_GATEWAY_HTTP_PORT` (default: `47000`)
+- `CORE_IGNITION_GATEWAY_HTTPS_PORT` (default: `47001`)
+- `CORE_IGNITION_GATEWAY_GATEWAY_PORT` (default: `47002`)
 - `CORE_HIGHBYTE_WEB_PORT` (default: `45245`)
 - `CORE_NGINX_PORT` (default: `8080`)
 
@@ -136,15 +136,15 @@ Quick reference table for all services (excluding Nginx and Cloudflare Tunnel):
 
 | Container Name | Service Name | Host Port(s) | Container Port(s) | Description |
 |---------------|--------------|--------------|-------------------|-------------|
-| `proveit-edge-ignition-gateway-01` | `edge-ignition-gateway-01` | `8092` (default)<br>`8048` (default)<br>`8064` (default) | `8088`<br>`8043`<br>`8060` | Ignition Edge Gateway |
+| `proveit-edge-ignition-gateway-01` | `edge-ignition-gateway-01` | `47040` (default)<br>`47041` (default)<br>`47042` (default) | `8088`<br>`8043`<br>`8060` | Ignition Edge Gateway |
 | `proveit-edge-fuuz-gateway` | `edge-fuuz-gateway` | `5500-5550` (default) | `5500-5550` | Fuuz Device Gateway |
 | `proveit-edge-nginx` | `edge-nginx` | `8082` (default) | `80` | Nginx Reverse Proxy - Path Rewriting for Cloudflare Tunnel |
 | `proveit-edge-cloudflared` | `edge-cloudflared` | - | - | Cloudflare Tunnel - External Access (no exposed ports) |
 
 **Environment Variables:**
-- `EDGE_IGNITION_GATEWAY_HTTP_PORT` (default: `8092`)
-- `EDGE_IGNITION_GATEWAY_HTTPS_PORT` (default: `8048`)
-- `EDGE_IGNITION_GATEWAY_GATEWAY_PORT` (default: `8064`)
+- `EDGE_IGNITION_GATEWAY_HTTP_PORT` (default: `47040`)
+- `EDGE_IGNITION_GATEWAY_HTTPS_PORT` (default: `47041`)
+- `EDGE_IGNITION_GATEWAY_GATEWAY_PORT` (default: `47042`)
 - `EDGE_FUUZ_GATEWAY_PORT_RANGE` (default: `5500-5550`)
 - `EDGE_NGINX_PORT` (default: `8082`)
 
@@ -223,20 +223,20 @@ Quick reference table for all services (excluding Nginx and Cloudflare Tunnel):
 |---------------|--------------|--------------|-------------------|-------------|
 | `proveit-mes-timescaledb` | `mes-timescaledb` | `5433` (default) | `5432` | MES Database - TimescaleDB |
 | `proveit-mes-pgbouncer` | `mes-pgbouncer` | `6433` (default) | `5432` | MES Connection Pooler - PgBouncer |
-| `proveit-mes-ignition-backend` | `mes-ignition-backend` | `8090` (default)<br>`8047` (default)<br>`8062` (default) | `8088`<br>`8043`<br>`8060` | MES Backend - Ignition |
-| `proveit-mes-ignition-frontend-01` | `mes-ignition-frontend-01` | `8088` (default)<br>`8043` (default)<br>`8060` (default) | `8088`<br>`8043`<br>`8060` | MES Frontend - Ignition |
+| `proveit-mes-ignition-backend` | `mes-ignition-backend` | `47010` (default)<br>`47011` (default)<br>`47012` (default) | `8088`<br>`8043`<br>`8060` | MES Backend - Ignition |
+| `proveit-mes-ignition-frontend-01` | `mes-ignition-frontend-01` | `47020` (default)<br>`47021` (default)<br>`47022` (default) | `8088`<br>`8043`<br>`8060` | MES Frontend - Ignition |
 | `proveit-mes-nginx` | `mes-nginx` | `8083` (default) | `80` | Nginx Reverse Proxy - Path Rewriting for Cloudflare Tunnel |
 | `proveit-mes-cloudflared` | `mes-cloudflared` | - | - | Cloudflare Tunnel - External Access (no exposed ports) |
 
 **Environment Variables:**
 - `MES_TIMESCALE_PORT` (default: `5433`)
 - `MES_PGBOUNCER_PORT` (default: `6433`)
-- `MES_IGNITION_BACKEND_HTTP_PORT` (default: `8090`)
-- `MES_IGNITION_BACKEND_HTTPS_PORT` (default: `8047`)
-- `MES_IGNITION_BACKEND_GATEWAY_PORT` (default: `8062`)
-- `MES_IGNITION_FRONTEND_HTTP_PORT` (default: `8088`)
-- `MES_IGNITION_FRONTEND_HTTPS_PORT` (default: `8043`)
-- `MES_IGNITION_FRONTEND_GATEWAY_PORT` (default: `8060`)
+- `MES_IGNITION_BACKEND_HTTP_PORT` (default: `47010`)
+- `MES_IGNITION_BACKEND_HTTPS_PORT` (default: `47011`)
+- `MES_IGNITION_BACKEND_GATEWAY_PORT` (default: `47012`)
+- `MES_IGNITION_FRONTEND_HTTP_PORT` (default: `47020`)
+- `MES_IGNITION_FRONTEND_HTTPS_PORT` (default: `47021`)
+- `MES_IGNITION_FRONTEND_GATEWAY_PORT` (default: `47022`)
 - `MES_NGINX_PORT` (default: `8083`)
 
 **Access URLs:**
@@ -312,14 +312,14 @@ Quick reference table for all services (excluding Nginx and Cloudflare Tunnel):
 
 | Container Name | Service Name | Host Port(s) | Container Port(s) | Description |
 |---------------|--------------|--------------|-------------------|-------------|
-| `proveit-scada-ignition-gateway` | `scada-ignition-gateway` | `8091` (default)<br>`8046` (default)<br>`8063` (default) | `8088`<br>`8043`<br>`8060` | SCADA Gateway - Ignition |
+| `proveit-scada-ignition-gateway` | `scada-ignition-gateway` | `47030` (default)<br>`47031` (default)<br>`47032` (default) | `8088`<br>`8043`<br>`8060` | SCADA Gateway - Ignition |
 | `proveit-scada-nginx` | `scada-nginx` | `8084` (default) | `80` | Nginx Reverse Proxy - Path Rewriting for Cloudflare Tunnel |
 | `proveit-scada-cloudflared` | `scada-cloudflared` | - | - | Cloudflare Tunnel - External Access (no exposed ports) |
 
 **Environment Variables:**
-- `SCADA_IGNITION_GATEWAY_HTTP_PORT` (default: `8091`)
-- `SCADA_IGNITION_GATEWAY_HTTPS_PORT` (default: `8046`)
-- `SCADA_IGNITION_GATEWAY_GATEWAY_PORT` (default: `8063`)
+- `SCADA_IGNITION_GATEWAY_HTTP_PORT` (default: `47030`)
+- `SCADA_IGNITION_GATEWAY_HTTPS_PORT` (default: `47031`)
+- `SCADA_IGNITION_GATEWAY_GATEWAY_PORT` (default: `47032`)
 - `SCADA_NGINX_PORT` (default: `8084`)
 
 **Access URLs:**
@@ -406,12 +406,12 @@ Quick reference table for all services (excluding Nginx and Cloudflare Tunnel):
 - **5432** - PostgreSQL (localhost only)
 - **6432** - PgBouncer (localhost only)
 - **8080** - Nginx
-- **8089, 8045, 8061** - Ignition Gateway
+- **47000, 47001, 47002** - Ignition Gateway (HTTP, HTTPS, Gateway Network)
 - **45245** - Highbyte
 
 ### Edge Stack
 - **8082** - Nginx
-- **8092, 8048, 8064** - Ignition Edge Gateway
+- **47040, 47041, 47042** - Ignition Edge Gateway (HTTP, HTTPS, Gateway Network)
 - **5500-5550** - Fuuz Gateway
 
 ### Historian Stack
@@ -425,8 +425,8 @@ Quick reference table for all services (excluding Nginx and Cloudflare Tunnel):
 - **8083** - Nginx
 - **5433** - TimescaleDB
 - **6433** - PgBouncer
-- **8090, 8047, 8062** - Ignition Backend
-- **8088, 8043, 8060** - Ignition Frontend
+- **47010, 47011, 47012** - Ignition Backend (HTTP, HTTPS, Gateway Network)
+- **47020, 47021, 47022** - Ignition Frontend (HTTP, HTTPS, Gateway Network)
 
 ### Monitoring Stack
 - **8085** - Nginx
@@ -434,7 +434,7 @@ Quick reference table for all services (excluding Nginx and Cloudflare Tunnel):
 
 ### SCADA Stack
 - **8084** - Nginx
-- **8091, 8046, 8063** - Ignition Gateway
+- **47030, 47031, 47032** - Ignition Gateway (HTTP, HTTPS, Gateway Network)
 
 ### Utility Stack
 - **8081** - Nginx

@@ -5,86 +5,93 @@
 - Core:
     - Core Ignition Gateway:
         icon: mdi-factory
-        href: http://localhost:8089
+        href: https://ignition.core.abelara.cloud
         description: Core Ignition Gateway - SCADA/IIoT Platform
-        container: core-ignition-gateway
+        container: proveit-core-ignition-gateway
     - Highbyte Intelligence Hub:
         icon: mdi-cog-transfer
-        href: http://localhost:45245
+        href: https://highbyte.core.abelara.cloud
         description: Highbyte Intelligence Hub - Data transformation & contextualization
-        container: proveit-highbyte
+        container: proveit-core-highbyte
 
 - MES:
     - MES Backend Gateway:
         icon: mdi-factory
-        href: http://localhost:8090
+        href: https://ignition-backend.mes.abelara.cloud
         description: MES Ignition Backend Gateway - SCADA/IIoT Platform
-        container: mes-ignition-backend
+        container: proveit-mes-ignition-backend
     - MES Frontend Gateway:
         icon: mdi-factory
-        href: http://localhost:8088
+        href: https://ignition-frontend-01.mes.abelara.cloud
         description: MES Ignition Frontend Gateway - SCADA/IIoT Platform
-        container: mes-ignition-frontend
+        container: proveit-mes-ignition-frontend-01
 
 - SCADA:
     - SCADA Ignition Gateway:
         icon: mdi-factory
-        href: http://localhost:8091
+        href: https://ignition.scada.abelara.cloud
         description: SCADA Ignition Gateway - SCADA/IIoT Platform
-        container: scada-ignition-gateway
+        container: proveit-scada-ignition-gateway
 
 - Edge:
     - Edge Ignition Gateway:
         icon: mdi-factory
-        href: http://localhost:8092
+        href: https://ignition-01.edge.abelara.cloud
         description: Edge Ignition Gateway - Edge SCADA/IIoT Platform
-        container: edge-ignition-gateway
+        container: proveit-edge-ignition-gateway-01
 
 # - Analytics:
 #     - Flow Bootstrap:
 #         icon: mdi-chart-timeline-variant
 #         href: http://localhost:4501
 #         description: Flow Bootstrap - Analytics platform bootstrap interface
-#         container: proveit-flow-bootstrap
+#         container: proveit-analytics-flow-bootstrap
 #     - Flow Platform:
 #         icon: mdi-chart-box
 #         href: http://localhost:80
 #         description: Flow Platform - Analytics platform
-#         container: proveit-flow-bootstrap
+#         container: proveit-analytics-flow-bootstrap
 
 - Historian:
     - Timebase Historian:
         icon: mdi-database-clock
-        href: http://localhost:4511
-        description: Timebase Historian - Time series data storage
-        container: proveit-historian
+        href: https://historian.historian.abelara.cloud
+        description: Timebase Historian - Time series database configuration
+        container: proveit-historian-timebase
     - Timebase Explorer:
         icon: mdi-chart-line
-        href: http://localhost:4531
+        href: https://explorer.historian.abelara.cloud
         description: Timebase Explorer - Time series data explorer
-        container: proveit-explorer
+        container: proveit-historian-explorer
     - Timebase Collector 01:
         icon: mdi-database-import
-        href: http://localhost:4521
-        description: Timebase Collector 01 - Data collection service
-        container: proveit-collector-01
+        href: https://collector-01.historian.abelara.cloud
+        description: Timebase Collector 01 - Data collection configuration
+        container: proveit-historian-collector-01
     - Timebase Collector 02:
         icon: mdi-database-import
-        href: http://localhost:4522
-        description: Timebase Collector 02 - Data collection service
-        container: proveit-collector-02
+        href: https://collector-02.historian.abelara.cloud
+        description: Timebase Collector 02 - Data collection configuration
+        container: proveit-historian-collector-02
+
+- Monitoring:
+    - Uptime Kuma:
+        icon: mdi-monitor-dashboard
+        href: https://uptime.monitor.abelara.cloud
+        description: Uptime Kuma - Service monitoring dashboard
+        container: proveit-monitoring-uptime-kuma
 
 - Utilities:
     - DBeaver:
         icon: si-postgresql
-        href: http://localhost:8978
+        href: https://dbeaver.utility.abelara.cloud
         description: DBeaver CloudBeaver - Database administration
-        container: proveit-dbeaver
+        container: proveit-utility-dbeaver
     - MQTT Explorer:
         icon: si-mqtt
-        href: http://localhost:4000
+        href: https://mqtt.utility.abelara.cloud
         description: MQTT Explorer - MQTT broker explorer
-        container: proveit-mqtt-explorer
+        container: proveit-utility-mqtt-explorer
 
 - Help:
     - Ignition Docs:

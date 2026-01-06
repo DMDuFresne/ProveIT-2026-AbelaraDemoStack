@@ -87,10 +87,11 @@ services:
       # IGNITION_GID: ${IGNITION_GID:-}
     volumes:
       - proveit-scada-ignition-gateway-data:/usr/local/bin/ignition/data
+      - /portainer/Files/AppData/Config/FileBrowser/ProveIT-2026-AbelaraDemoStack/backups/scada:/usr/local/bin/ignition/data/backups
     ports:
-      - "${SCADA_IGNITION_GATEWAY_HTTP_PORT:-8091}:8088"
-      - "${SCADA_IGNITION_GATEWAY_HTTPS_PORT:-8046}:8043"
-      - "${SCADA_IGNITION_GATEWAY_GATEWAY_PORT:-8063}:8060"
+      - "${SCADA_IGNITION_GATEWAY_HTTP_PORT:-47030}:8088"
+      - "${SCADA_IGNITION_GATEWAY_HTTPS_PORT:-47031}:8043"
+      - "${SCADA_IGNITION_GATEWAY_GATEWAY_PORT:-47032}:8060"
     networks:
       - operations-network
     healthcheck:

@@ -14,8 +14,28 @@ This PostgreSQL instance serves as the central database server for all Ignition 
 | `ignition_scada` | `ignition_scada` | SCADA gateway data storage |
 | `ignition_mes_frontend` | `ignition_mes_frontend` | MES Frontend gateway data |
 | `ignition_mes_backend` | `ignition_mes_backend` | MES Backend gateway data |
+| `ignition_edge` | `ignition_edge` | Edge gateway data storage |
+| `ignition_shared` | `ignition_shared` | Shared data (all gateways have READ access) |
 | `postgres` | `postgres` | System database (superuser) |
 | All databases | `monitoring_readonly` | Read-only monitoring access |
+
+### Shared Database Access
+
+The `ignition_shared` database provides a central location for data that needs to be accessed by all gateways:
+- Common lookup tables (materials, products, units of measure)
+- Master data and reference data
+- Cross-gateway configuration
+
+**Access Matrix:**
+| User | Access Level |
+|------|--------------|
+| `ignition_shared` | OWNER (full read/write) |
+| `ignition_core` | READ (SELECT only) |
+| `ignition_scada` | READ (SELECT only) |
+| `ignition_mes_frontend` | READ (SELECT only) |
+| `ignition_mes_backend` | READ (SELECT only) |
+| `ignition_edge` | READ (SELECT only) |
+| `monitoring_readonly` | READ (SELECT only) |
 
 ### Connection Information
 
@@ -35,27 +55,42 @@ For Ignition gateway configuration:
 
 ```
 # Core Gateway
-jdbc:postgresql://pgbouncer:5432/ignition_core
+jdbc:postgresql://core-pgbouncer:5432/ignition_core
 User: ignition_core
-Password: password  (DEFAULT - CHANGE IN PRODUCTION!)
+Password: (set via CORE_POSTGRES_CORE_PASSWORD)
 
 # SCADA Gateway
-jdbc:postgresql://pgbouncer:5432/ignition_scada
+jdbc:postgresql://core-pgbouncer:5432/ignition_scada
 User: ignition_scada
-Password: password  (DEFAULT - CHANGE IN PRODUCTION!)
+Password: (set via CORE_POSTGRES_SCADA_PASSWORD)
 
 # MES Frontend Gateway
-jdbc:postgresql://pgbouncer:5432/ignition_mes_frontend
+jdbc:postgresql://core-pgbouncer:5432/ignition_mes_frontend
 User: ignition_mes_frontend
-Password: password  (DEFAULT - CHANGE IN PRODUCTION!)
+Password: (set via CORE_POSTGRES_MES_FRONTEND_PASSWORD)
 
 # MES Backend Gateway
-jdbc:postgresql://pgbouncer:5432/ignition_mes_backend
+jdbc:postgresql://core-pgbouncer:5432/ignition_mes_backend
 User: ignition_mes_backend
-Password: password  (DEFAULT - CHANGE IN PRODUCTION!)
+Password: (set via CORE_POSTGRES_MES_BACKEND_PASSWORD)
+
+# Edge Gateway
+jdbc:postgresql://core-pgbouncer:5432/ignition_edge
+User: ignition_edge
+Password: (set via CORE_POSTGRES_EDGE_PASSWORD)
+
+# Shared Database (write access - use for managing shared data)
+jdbc:postgresql://core-pgbouncer:5432/ignition_shared
+User: ignition_shared
+Password: (set via CORE_POSTGRES_SHARED_PASSWORD)
+
+# Shared Database (read access - use from any gateway)
+jdbc:postgresql://core-pgbouncer:5432/ignition_shared
+User: ignition_scada  (or any gateway user)
+Password: (use that gateway's password)
 ```
 
-**Note:** Use `pgbouncer` as the host (not `postgres`) to benefit from connection pooling.
+**Note:** Use `core-pgbouncer` as the host (not `core-postgres`) to benefit from connection pooling.
 
 ## Security Configuration
 
@@ -67,14 +102,16 @@ The database users are created with **default passwords** hardcoded in the initi
 
 ```bash
 # Connect to PostgreSQL
-docker exec -it proveit-postgres psql -U postgres
+docker exec -it proveit-core-postgres psql -U postgres
 
 # Change passwords for each user
 ALTER USER ignition_core WITH PASSWORD 'YourSecurePassword1!';
 ALTER USER ignition_scada WITH PASSWORD 'YourSecurePassword2!';
 ALTER USER ignition_mes_frontend WITH PASSWORD 'YourSecurePassword3!';
 ALTER USER ignition_mes_backend WITH PASSWORD 'YourSecurePassword4!';
-ALTER USER monitoring_readonly WITH PASSWORD 'YourSecurePassword5!';
+ALTER USER ignition_edge WITH PASSWORD 'YourSecurePassword5!';
+ALTER USER ignition_shared WITH PASSWORD 'YourSecurePassword6!';
+ALTER USER monitoring_readonly WITH PASSWORD 'YourSecurePassword7!';
 \q
 ```
 
@@ -130,8 +167,8 @@ Adjust these in `config/postgres/postgresql.conf` based on your server resources
 Each Ignition gateway should configure its connection pool to use PgBouncer:
 
 - **Min Connections:** 5
-- **Max Connections:** 40
-- **Total connections:** 4 gateways × 40 = 160 (within 200 limit)
+- **Max Connections:** 30
+- **Total connections:** 5 gateways × 30 = 150 (within 200 limit)
 
 ## Backup and Recovery
 
@@ -214,10 +251,10 @@ The Docker health check runs every 30 seconds:
 
 ```bash
 # Check container health
-docker inspect proveit-postgres --format='{{.State.Health.Status}}'
+docker inspect proveit-core-postgres --format='{{.State.Health.Status}}'
 
 # View health check logs
-docker inspect proveit-postgres --format='{{range .State.Health.Log}}{{.Output}}{{end}}'
+docker inspect proveit-core-postgres --format='{{range .State.Health.Log}}{{.Output}}{{end}}'
 ```
 
 ### Performance Metrics
@@ -277,16 +314,16 @@ Monitor these key metrics:
 
 ```bash
 # View PostgreSQL logs
-docker logs -f proveit-postgres
+docker logs -f proveit-core-postgres
 
 # Connect to PostgreSQL CLI
-docker exec -it proveit-postgres psql -U postgres
+docker exec -it proveit-core-postgres psql -U postgres
 
 # Check running queries
-docker exec proveit-postgres psql -U postgres -c "SELECT * FROM pg_stat_activity;"
+docker exec proveit-core-postgres psql -U postgres -c "SELECT * FROM pg_stat_activity;"
 
 # Check database sizes
-docker exec proveit-postgres psql -U postgres -c "SELECT datname, pg_size_pretty(pg_database_size(datname)) FROM pg_database;"
+docker exec proveit-core-postgres psql -U postgres -c "SELECT datname, pg_size_pretty(pg_database_size(datname)) FROM pg_database;"
 ```
 
 ## Upgrade Process

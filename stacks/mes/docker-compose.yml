@@ -157,10 +157,11 @@ services:
       # IGNITION_GID: ${IGNITION_GID:-}
     volumes:
       - proveit-mes-ignition-backend-data:/usr/local/bin/ignition/data
+      - /portainer/Files/AppData/Config/FileBrowser/ProveIT-2026-AbelaraDemoStack/backups/mes-backend:/usr/local/bin/ignition/data/backups
     ports:
-      - "${MES_IGNITION_BACKEND_HTTP_PORT:-8090}:8088"
-      - "${MES_IGNITION_BACKEND_HTTPS_PORT:-8047}:8043"
-      - "${MES_IGNITION_BACKEND_GATEWAY_PORT:-8062}:8060"
+      - "${MES_IGNITION_BACKEND_HTTP_PORT:-47010}:8088"
+      - "${MES_IGNITION_BACKEND_HTTPS_PORT:-47011}:8043"
+      - "${MES_IGNITION_BACKEND_GATEWAY_PORT:-47012}:8060"
     networks:
       - operations-network
     healthcheck:
@@ -207,10 +208,11 @@ services:
       # IGNITION_GID: ${IGNITION_GID:-}
     volumes:
       - proveit-mes-ignition-frontend-data:/usr/local/bin/ignition/data
+      - /portainer/Files/AppData/Config/FileBrowser/ProveIT-2026-AbelaraDemoStack/backups/mes-frontend:/usr/local/bin/ignition/data/backups
     ports:
-      - "${MES_IGNITION_FRONTEND_HTTP_PORT:-8088}:8088"
-      - "${MES_IGNITION_FRONTEND_HTTPS_PORT:-8043}:8043"
-      - "${MES_IGNITION_FRONTEND_GATEWAY_PORT:-8060}:8060"
+      - "${MES_IGNITION_FRONTEND_HTTP_PORT:-47020}:8088"
+      - "${MES_IGNITION_FRONTEND_HTTPS_PORT:-47021}:8043"
+      - "${MES_IGNITION_FRONTEND_GATEWAY_PORT:-47022}:8060"
     networks:
       - operations-network
     healthcheck:

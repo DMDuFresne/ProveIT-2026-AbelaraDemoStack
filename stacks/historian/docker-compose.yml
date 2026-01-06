@@ -4,7 +4,11 @@
 # Description: This file contains the configuration for the historian services of
 # the ProveIT 2026 Demo Stack.
 #
-# It is used to deploy the historian services using Docker Compose.
+# Includes:
+#   - Timebase Historian (Time Series Database)
+#   - Timebase Explorer (Web Interface)
+#   - Nginx Reverse Proxy
+#   - Cloudflare Tunnel
 #
 # =============================================================================
 
@@ -24,22 +28,20 @@ x-defaults: &defaults
 x-common-environment: &common-environment
   TZ: ${HISTORIAN_TZ:-America/Chicago}
 
-x-collector-common: &collector-common
-  image: timebase/collector:${HISTORIAN_COLLECTOR_TAG:-latest}
-  networks:
-    - timebase-network
-  depends_on:
-    - historian-timebase
-
 # =============================================================================
 # NETWORKS
 # =============================================================================
 # Note: This stack creates its own network for Timebase services
+# routing-network is shared with cloudflared for external access
 
 networks:
   timebase-network:
     name: ${HISTORIAN_NETWORK_NAME:-timebase-network}
     driver: bridge
+  routing-network:
+    external: true
+  operations-network:
+    external: true
 
 # =============================================================================
 # SERVICES
@@ -67,6 +69,7 @@ services:
       - "${HISTORIAN_HISTORIAN_PORT:-4511}:4511"
     networks:
       - timebase-network
+      - operations-network 
 
   # ---------------------------------------------------------------------------
   # Timebase Explorer - Historian Web Interface
@@ -121,46 +124,6 @@ services:
         exec dotnet Timebase.Explorer.UI.dll
 
   # ---------------------------------------------------------------------------
-  # Timebase Collector 01 - Data Collection Service
-  # ---------------------------------------------------------------------------
-
-  historian-collector-01:
-    <<: [*defaults, *collector-common]
-    container_name: proveit-historian-collector-01
-    hostname: historian-collector-01
-    environment:
-      <<: *common-environment
-      Active: ${HISTORIAN_COLLECTOR_01_ACTIVE:-false}
-      Settings: /collector/settings
-      Config: /collector/config
-      Data: /collector/data
-      Logs: /collector/logs
-    ports:
-      - "${HISTORIAN_COLLECTOR_01_PORT:-4521}:4521"
-    volumes:
-      - proveit-historian-collector-01-data:/collector
-
-  # ---------------------------------------------------------------------------
-  # Timebase Collector 02 - Data Collection Service
-  # ---------------------------------------------------------------------------
-
-  historian-collector-02:
-    <<: [*defaults, *collector-common]
-    container_name: proveit-historian-collector-02
-    hostname: historian-collector-02
-    environment:
-      <<: *common-environment
-      Active: ${HISTORIAN_COLLECTOR_02_ACTIVE:-false}
-      Settings: /collector/settings
-      Config: /collector/config
-      Data: /collector/data
-      Logs: /collector/logs
-    ports:
-      - "${HISTORIAN_COLLECTOR_02_PORT:-4522}:4522"
-    volumes:
-      - proveit-historian-collector-02-data:/collector
-
-  # ---------------------------------------------------------------------------
   # Nginx Reverse Proxy - Local Access
   # ---------------------------------------------------------------------------
 
@@ -175,6 +138,7 @@ services:
       - "${HISTORIAN_NGINX_PORT:-8086}:80"
     networks:
       - timebase-network
+      - routing-network
     depends_on:
       - historian-explorer
     healthcheck:
@@ -184,6 +148,28 @@ services:
       retries: 3
       start_period: 30s
 
+  # ---------------------------------------------------------------------------
+  # Cloudflare Tunnel - External Access
+  # ---------------------------------------------------------------------------
+
+  historian-cloudflared:
+    <<: *defaults
+    image: cloudflare/cloudflared:latest
+    container_name: proveit-historian-cloudflared
+    hostname: historian-cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${HISTORIAN_CLOUDFLARE_TUNNEL_TOKEN}
+    networks:
+      - routing-network
+    depends_on:
+      historian-nginx:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
 # =============================================================================
 # VOLUMES
 # =============================================================================
@@ -191,5 +177,3 @@ services:
 volumes:
   proveit-historian-timebase-data:
   proveit-historian-explorer-data:
-  proveit-historian-collector-01-data:
-  proveit-historian-collector-02-data:

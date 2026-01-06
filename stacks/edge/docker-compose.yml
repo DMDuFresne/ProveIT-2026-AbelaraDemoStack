@@ -93,10 +93,11 @@ services:
       # IGNITION_GID: ${IGNITION_GID:-}
     volumes:
       - proveit-edge-ignition-gateway-data:/usr/local/bin/ignition/data
+      - /portainer/Files/AppData/Config/FileBrowser/ProveIT-2026-AbelaraDemoStack/backups/edge:/usr/local/bin/ignition/data/backups
     ports:
-      - "${EDGE_IGNITION_GATEWAY_HTTP_PORT:-8092}:8088"
-      - "${EDGE_IGNITION_GATEWAY_HTTPS_PORT:-8048}:8043"
-      - "${EDGE_IGNITION_GATEWAY_GATEWAY_PORT:-8064}:8060"
+      - "${EDGE_IGNITION_GATEWAY_HTTP_PORT:-47040}:8088"
+      - "${EDGE_IGNITION_GATEWAY_HTTPS_PORT:-47041}:8043"
+      - "${EDGE_IGNITION_GATEWAY_GATEWAY_PORT:-47042}:8060"
     networks:
       - operations-network
     healthcheck:

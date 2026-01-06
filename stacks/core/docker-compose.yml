@@ -177,10 +177,11 @@ services:
       # IGNITION_GID: ${IGNITION_GID:-}
     volumes:
       - proveit-core-ignition-gateway-data:/usr/local/bin/ignition/data
+      - /portainer/Files/AppData/Config/FileBrowser/ProveIT-2026-AbelaraDemoStack/backups/core:/usr/local/bin/ignition/data/backups
     ports:
-      - "${CORE_IGNITION_GATEWAY_HTTP_PORT:-8089}:8088"
-      - "${CORE_IGNITION_GATEWAY_HTTPS_PORT:-8045}:8043"
-      - "${CORE_IGNITION_GATEWAY_GATEWAY_PORT:-8061}:8060"
+      - "${CORE_IGNITION_GATEWAY_HTTP_PORT:-47000}:8088"
+      - "${CORE_IGNITION_GATEWAY_HTTPS_PORT:-47001}:8043"
+      - "${CORE_IGNITION_GATEWAY_GATEWAY_PORT:-47002}:8060"
     networks:
       - operations-network
     healthcheck:

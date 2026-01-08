@@ -213,7 +213,9 @@ services:
     volumes:
       - proveit-core-highbyte-data:/usr/local/highbyte/appData
     ports:
-      - "${CORE_HIGHBYTE_WEB_PORT:-45245}:45245" # REST API used for configuration.
+      - "${CORE_HIGHBYTE_WEB_PORT:-45245}:45245"       # Web UI / Configuration API
+      - "${CORE_HIGHBYTE_REST_DATA_PORT:-8885}:8885"   # REST Data Server
+      - "${CORE_HIGHBYTE_MCP_PORT:-45345}:45345"       # MCP Server
     networks:
       - operations-network
     depends_on:
@@ -256,23 +258,23 @@ services:
   # Cloudflare Tunnel - External Access
   # ---------------------------------------------------------------------------
 
-  core-cloudflared:
-    <<: *defaults
-    image: cloudflare/cloudflared:latest
-    container_name: proveit-core-cloudflared
-    hostname: core-cloudflared
-    restart: unless-stopped
-    command: tunnel --no-autoupdate run --token ${CORE_CLOUDFLARE_TUNNEL_TOKEN}
-    networks:
-      - routing-network
-    depends_on:
-      core-nginx:
-        condition: service_healthy
-    logging:
-      driver: json-file
-      options:
-        max-size: 10m
-        max-file: "3"
+  # core-cloudflared:
+  #   <<: *defaults
+  #   image: cloudflare/cloudflared:latest
+  #   container_name: proveit-core-cloudflared
+  #   hostname: core-cloudflared
+  #   restart: unless-stopped
+  #   command: tunnel --no-autoupdate run --token ${CORE_CLOUDFLARE_TUNNEL_TOKEN}
+  #   networks:
+  #     - routing-network
+  #   depends_on:
+  #     core-nginx:
+  #       condition: service_healthy
+  #   logging:
+  #     driver: json-file
+  #     options:
+  #       max-size: 10m
+  #       max-file: "3"
 
 # =============================================================================
 # VOLUMES

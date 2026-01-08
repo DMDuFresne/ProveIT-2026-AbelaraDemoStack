@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "mes-postgres": {
+      "type": "sse",
+      "url": "http://localhost:47030/sse"
+    }
+  }
+}

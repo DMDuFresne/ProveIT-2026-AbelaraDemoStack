@@ -66,6 +66,8 @@ services:
       POSTGRES_PASSWORD: ${MES_POSTGRES_PASSWORD}
       POSTGRES_HOST_AUTH_METHOD: scram-sha-256
       POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+      # MCP Read-Only User (used by init scripts)
+      MCP_READONLY_PASSWORD: ${MES_MCP_READONLY_PASSWORD:-mcp_readonly_password}
     volumes:
       - proveit-mes-timescaledb-data:/var/lib/postgresql/data
       - ./config/database/creation:/docker-entrypoint-initdb.d:ro
@@ -243,6 +245,8 @@ services:
         condition: service_healthy
       mes-ignition-frontend-01:
         condition: service_healthy
+      mes-mcp-postgres:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://127.0.0.1/nginx-health || exit 1"]
       interval: 30s
@@ -254,23 +258,62 @@ services:
   # Cloudflare Tunnel - External Access
   # ---------------------------------------------------------------------------
 
-  mes-cloudflared:
+  # mes-cloudflared:
+  #   <<: *defaults
+  #   image: cloudflare/cloudflared:latest
+  #   container_name: proveit-mes-cloudflared
+  #   hostname: mes-cloudflared
+  #   restart: unless-stopped
+  #   command: tunnel --no-autoupdate run --token ${MES_CLOUDFLARE_TUNNEL_TOKEN}
+  #   networks:
+  #     - routing-network
+  #   depends_on:
+  #     mes-nginx:
+  #       condition: service_healthy
+  #   logging:
+  #     driver: json-file
+  #     options:
+  #       max-size: 10m
+  #       max-file: "3"
+
+  # ---------------------------------------------------------------------------
+  # MES MCP Postgres Server - Supergateway wrapping official postgres MCP
+  # ---------------------------------------------------------------------------
+  # See: https://github.com/supercorp-ai/supergateway
+  # Converts stdio-based MCP server to SSE for remote access
+
+  mes-mcp-postgres:
     <<: *defaults
-    image: cloudflare/cloudflared:latest
-    container_name: proveit-mes-cloudflared
-    hostname: mes-cloudflared
-    restart: unless-stopped
-    command: tunnel --no-autoupdate run --token ${MES_CLOUDFLARE_TUNNEL_TOKEN}
+    image: supercorp/supergateway:${SUPERGATEWAY_VERSION:-latest}
+    container_name: proveit-mes-mcp-postgres
+    hostname: mes-mcp-postgres
+    command:
+      - --outputTransport
+      - sse
+      - --host
+      - "0.0.0.0"
+      - --port
+      - "8000"
+      - --stdio
+      - "npx -y @modelcontextprotocol/server-postgres postgresql://mcp_readonly:${MES_MCP_READONLY_PASSWORD:-mcp_readonly_password}@mes-pgbouncer:5432/proveit-mes"
+    ports:
+      - "${MES_POSTGRES_MCP_PORT:-48100}:8000"
     networks:
-      - routing-network
+      - operations-network
     depends_on:
-      mes-nginx:
+      mes-pgbouncer:
         condition: service_healthy
-    logging:
-      driver: json-file
-      options:
-        max-size: 10m
-        max-file: "3"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8000/sse || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
 
 # =============================================================================
 # VOLUMES

@@ -1,0 +1,155 @@
+{
+	"productInfo": {
+		"company": "HighByte",
+		"product": "IntelligenceHub",
+		"version": "4.3.1",
+		"build": "2025.11.17.5",
+		"stage": "Release"
+	},
+	"project": {
+		"version": 12,
+		"connections": [],
+		"inputs": [],
+		"outputs": [],
+		"modeling": {
+			"models": [],
+			"instances": []
+		},
+		"conditions": [],
+		"functions": [],
+		"tags": [],
+		"pipelines": [
+			{
+				"name": "MachineIdentification",
+				"description": "CESMII SM Profile: Published from Ignition UDT",
+				"groupAs": "/CESMII/SMProfile/UDT",
+				"tags": [],
+				"inputStages": [
+					"Breakup"
+				],
+				"stages": [
+					{
+						"name": "Write",
+						"display": {
+							"position": {
+								"x": 1314,
+								"y": -62
+							}
+						},
+						"config": {
+							"type": ".WriteConfig",
+							"failureOutputs": [],
+							"references": [
+								"{{Connection.VirtualFactory.Abelara_Retained}}"
+							],
+							"writeReturn": "ignore"
+						},
+						"outputs": []
+					},
+					{
+						"name": "JSONata",
+						"display": {
+							"position": {
+								"x": 935,
+								"y": -62
+							}
+						},
+						"config": {
+							"type": ".JSONataTransformConfig",
+							"transformExpression": "(\r\n  $profile := event.value[0];\r\n  {\r\n    \"payload\": {\r\n      \"$comment\": \"OPC UA Machinery MachineIdentification companion specification profile\",\r\n      \"$namespace\": \"https://opcfoundation.org/UA/Machinery/MachineIdentification/v1.0\",\r\n      \"$source\": {\r\n        \"gateway\": \"Ignition_Core\",\r\n        \"provider\": \"Unified\",\r\n        \"connection\": \"OPC-UA\",\r\n        \"tagPath\": $profile._path,\r\n        \"model\": $profile._model\r\n      },\r\n      \"$metadata\": {\r\n        \"publisher\": \"HighByte Intelligence Hub\",\r\n        \"schemaVersion\": \"1.0.0\",\r\n        \"dataQuality\": \"Good\",\r\n        \"profileType\": \"CESMII Smart Manufacturing Profile\"\r\n      },\r\n      \"timestamp\": event.timestamp,\r\n      \"manufacturer\": $each($profile.Manufacturer, function($v, $k) {\r\n        { \"locale\": $k, \"text\": $v }\r\n      }),\r\n      \"serialNumber\": $profile.SerialNumber,\r\n      \"productInstanceUri\": $profile.ProductInstanceUri,\r\n      \"manufacturerUri\": $profile.ManufacturerUri,\r\n      \"model\": $each($profile.Model, function($v, $k) {\r\n        { \"locale\": $k, \"text\": $v }\r\n      }),\r\n      \"productCode\": $profile.ProductCode,\r\n      \"hardwareRevision\": $profile.HardwareRevision,\r\n      \"softwareRevision\": $profile.SoftwareRevision,\r\n      \"deviceClass\": $profile.DeviceClass,\r\n      \"yearOfConstruction\": $profile.YearOfConstruction,\r\n      \"monthOfConstruction\": $profile.MonthOfConstruction,\r\n      \"initialOperationDate\": $fromMillis($profile.InitialOperationDate),\r\n      \"assetId\": $profile.AssetId,\r\n      \"componentName\": $profile.ComponentName,\r\n      \"location\": $profile.Location\r\n    },\r\n    \"topic\": $profile._path\r\n  }\r\n)"
+						},
+						"outputs": [
+							"Write"
+						]
+					},
+					{
+						"name": "Read",
+						"display": {
+							"position": {
+								"x": 541,
+								"y": 0
+							}
+						},
+						"config": {
+							"type": ".ReadConfig",
+							"failureOutputs": [
+								"ErrorLog"
+							],
+							"reference": {
+								"type": "Advanced",
+								"refType": "Input",
+								"name": "Ignition_Core",
+								"ioName": "Provider_SMProfiles_DynamicPath",
+								"path": "",
+								"params": "{\"path\": \"{{event.value._path}}\"}"
+							}
+						},
+						"outputs": [
+							"JSONata"
+						]
+					},
+					{
+						"name": "ErrorLog",
+						"display": {
+							"position": {
+								"x": 935,
+								"y": 64
+							}
+						},
+						"config": {
+							"type": ".WriteConfig",
+							"failureOutputs": [],
+							"references": [
+								"{{System.EventLog.Info}}"
+							],
+							"writeReturn": "ignore"
+						},
+						"outputs": []
+					},
+					{
+						"name": "Breakup",
+						"display": {
+							"position": {
+								"x": 160,
+								"y": 0
+							}
+						},
+						"config": {
+							"type": ".BreakupConfig",
+							"breakupType": "array",
+							"depth": 1
+						},
+						"outputs": [
+							"Read"
+						]
+					}
+				],
+				"trackActivity": false,
+				"triggers": [
+					{
+						"name": "EventTrigger",
+						"display": {
+							"position": {
+								"x": -334,
+								"y": 0
+							}
+						},
+						"config": {
+							"type": ".TriggerEvent",
+							"enabled": true,
+							"reference": "{{Connection.Ignition_Core.Provider_SMProfiles_MachineIdentification}}"
+						}
+					}
+				],
+				"errorHandler": {
+					"type": "default"
+				}
+			}
+		],
+		"namespace": []
+	},
+	"network": {
+		"groups": [],
+		"hubs": []
+	}
+}

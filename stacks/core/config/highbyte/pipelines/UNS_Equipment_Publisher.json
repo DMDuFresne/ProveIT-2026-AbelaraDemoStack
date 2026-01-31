@@ -1,0 +1,1439 @@
+{
+	"productInfo": {
+		"company": "HighByte",
+		"product": "IntelligenceHub",
+		"version": "4.3.1",
+		"build": "2025.11.17.5",
+		"stage": "Release"
+	},
+	"project": {
+		"version": 12,
+		"connections": [
+			{
+				"name": "Ignition_Core",
+				"uri": "inductive.ignition://core-ignition-gateway:45280",
+				"groupAs": "/Ignition",
+				"description": "Core Ignition Gateway",
+				"tags": [],
+				"writes": {
+					"flattenModeledValues": false
+				},
+				"subscriptions": {},
+				"storeForward": {
+					"enabled": true,
+					"maxEntries": 100,
+					"waitOnFailureInterval": {
+						"duration": 1,
+						"units": "Seconds"
+					}
+				},
+				"settings": {
+					"connectTimeoutSeconds": 5,
+					"requestTimeoutMS": 30000,
+					"compression": "GZIP",
+					"password": {
+						"type": "Encrypted",
+						"value": {
+							"keyId": "0blZTqlFwYuCLRQ/PalrwQ==",
+							"iv": "kZf9KkqB7ThbRkkoz+9c5Q==",
+							"ciphertext": "5bC7s/yEz+fwHG8DIl/pLQ=="
+						}
+					}
+				}
+			},
+			{
+				"name": "Internal",
+				"uri": "mqtt://localhost:1885",
+				"groupAs": "/MQTT",
+				"description": "Internal MQTT Broker for UNS",
+				"tags": [],
+				"writes": {
+					"flattenModeledValues": false
+				},
+				"subscriptions": {},
+				"storeForward": {
+					"enabled": false,
+					"maxEntries": 100,
+					"waitOnFailureInterval": {
+						"duration": 1,
+						"units": "Seconds"
+					}
+				},
+				"settings": {
+					"connectionTimeoutSeconds": 10,
+					"keepAliveSeconds": 60,
+					"requestTimeoutMS": 5000,
+					"maxInflight": 1000,
+					"cleanSession": true,
+					"mcpEnabled": "disabled",
+					"ssl": false,
+					"redundantBrokers": [],
+					"inputDiscovery": ""
+				}
+			}
+		],
+		"inputs": [
+			{
+				"name": "Equipment_Process_All",
+				"connection": "Ignition_Core",
+				"type": "inductive.ignition",
+				"qualifier": {
+					"type": "udt",
+					"includes": [],
+					"tagAddress": "[Unified]"
+				},
+				"cacheLifetime": {
+					"enabled": false,
+					"interval": {
+						"duration": 1,
+						"units": "Seconds"
+					}
+				},
+				"template": {
+					"type": "Off",
+					"params": [
+						{
+							"name": "",
+							"pattern": ""
+						}
+					]
+				},
+				"parameters": {
+					"type": "EmptyParameters"
+				}
+			},
+			{
+				"name": "Equipment_Process_DynamicPath",
+				"connection": "Ignition_Core",
+				"type": "inductive.ignition",
+				"qualifier": {
+					"type": "udt",
+					"includes": [],
+					"tagAddress": "[Unified]{{this.path}}"
+				},
+				"cacheLifetime": {
+					"enabled": false,
+					"interval": {
+						"duration": 1,
+						"units": "Seconds"
+					}
+				},
+				"template": {
+					"type": "Off",
+					"params": [
+						{
+							"name": "",
+							"pattern": ""
+						}
+					]
+				},
+				"parameters": {
+					"type": "inline",
+					"model": {
+						"name": "params",
+						"tags": [],
+						"attributes": [
+							{
+								"attributeType": "Internal",
+								"name": "path",
+								"nullable": false,
+								"required": false,
+								"array": false,
+								"defaultValue": "",
+								"internalType": "String"
+							}
+						]
+					}
+				}
+			},
+			{
+				"name": "Provider_SMProfiles_DynamicPath",
+				"connection": "Ignition_Core",
+				"type": "inductive.ignition",
+				"qualifier": {
+					"type": "udt",
+					"includes": [],
+					"tagAddress": "[SM Profiles]{{this.path}}"
+				},
+				"cacheLifetime": {
+					"enabled": false,
+					"interval": {
+						"duration": 1,
+						"units": "Seconds"
+					}
+				},
+				"template": {
+					"type": "Off",
+					"params": [
+						{
+							"name": "",
+							"pattern": ""
+						}
+					]
+				},
+				"parameters": {
+					"type": "inline",
+					"model": {
+						"name": "params",
+						"tags": [],
+						"attributes": [
+							{
+								"attributeType": "Internal",
+								"name": "path",
+								"nullable": false,
+								"required": false,
+								"array": false,
+								"defaultValue": "Cappy Hour Inc",
+								"internalType": "String"
+							}
+						]
+					}
+				}
+			},
+			{
+				"name": "Provider_SMProfiles_MachineIdentification",
+				"connection": "Ignition_Core",
+				"type": "inductive.ignition",
+				"qualifier": {
+					"type": "udt",
+					"includes": [
+						"CESMII/v1-0/MachineIdentification"
+					],
+					"tagAddress": "[SM Profiles]"
+				},
+				"cacheLifetime": {
+					"enabled": false,
+					"interval": {
+						"duration": 1,
+						"units": "Seconds"
+					}
+				},
+				"template": {
+					"type": "Off",
+					"params": [
+						{
+							"name": "",
+							"pattern": ""
+						}
+					]
+				},
+				"parameters": {
+					"type": "EmptyParameters"
+				}
+			},
+			{
+				"name": "Vat03_Complete",
+				"connection": "Internal",
+				"type": "mqtt",
+				"qualifier": {
+					"inputType": "Branch",
+					"payloadType": "any",
+					"qos": 0,
+					"topic": "Enterprise B/Site1/liquidprocessing/mixroom01/vat03/#",
+					"includeTopic": false
+				},
+				"cacheLifetime": {
+					"enabled": false
+				},
+				"template": {
+					"type": "Off"
+				},
+				"parameters": {
+					"type": "EmptyParameters"
+				}
+			}
+		],
+		"outputs": [
+			{
+				"name": "Publish_Abelara_Ignition_Retained",
+				"connection": "Internal",
+				"type": "mqtt",
+				"qualifier": {
+					"qos": 0,
+					"namedRoot": false,
+					"breakupArrays": false,
+					"topic": "abelara/{{this.topic}}",
+					"retained": true,
+					"template": "{{this.payload}}"
+				}
+			},
+			{
+				"name": "Publish_UNS_Retained",
+				"connection": "Internal",
+				"type": "mqtt",
+				"qualifier": {
+					"outputType": "TopicValue",
+					"qos": 1,
+					"retain": true,
+					"topic": "{{this.topic}}",
+					"payloadType": "json"
+				}
+			},
+			{
+				"name": "UNS_Internal_NonRetained_QoS0",
+				"connection": "Internal",
+				"type": "mqtt",
+				"qualifier": {
+					"qos": 0,
+					"namedRoot": false,
+					"breakupArrays": false,
+					"topic": "abelara/{{this.topic}}",
+					"retained": false,
+					"template": "{{this.payload}}"
+				}
+			},
+			{
+				"name": "UNS_Internal_Retained_QoS1",
+				"connection": "Internal",
+				"type": "mqtt",
+				"qualifier": {
+					"qos": 1,
+					"namedRoot": false,
+					"breakupArrays": false,
+					"topic": "abelara/{{this.topic}}",
+					"retained": true,
+					"template": "{{this.payload}}"
+				}
+			}
+		],
+		"modeling": {
+			"models": [],
+			"instances": []
+		},
+		"conditions": [],
+		"functions": [],
+		"tags": [],
+		"pipelines": [
+			{
+				"name": "UNS_Equipment_Counts",
+				"description": "Publishes production counts to UNS on value change",
+				"groupAs": "/UNS/Equipment",
+				"tags": [],
+				"inputStages": [
+					"Breakup"
+				],
+				"stages": [
+					{
+						"name": "Read",
+						"display": {
+							"position": {
+								"x": 884,
+								"y": 0
+							}
+						},
+						"config": {
+							"type": ".ReadConfig",
+							"failureOutputs": [
+								"ErrorLog"
+							],
+							"reference": {
+								"type": "Advanced",
+								"refType": "Input",
+								"name": "Ignition_Core",
+								"ioName": "Equipment_Process_DynamicPath",
+								"path": "",
+								"params": "{\"path\": \"{{event.value._path}}\"}"
+							}
+						},
+						"outputs": [
+							"JSONata_Counts"
+						]
+					},
+					{
+						"name": "JSONata_Counts",
+						"display": {
+							"position": {
+								"x": 1277,
+								"y": -14
+							}
+						},
+						"config": {
+							"type": ".JSONataTransformConfig",
+							"transformExpression": "(\r\n  $equipment := event.value[0];\r\n  {\r\n    \"payload\": {\r\n      \"timestamp\": $now(),\r\n      \"_model\": $equipment._model,\r\n      \"_name\": $equipment._name,\r\n      \"_path\": $equipment._path,\r\n      \"value\": $equipment.Counts\r\n    },\r\n    \"topic\": $equipment.Definition.Path & \"/counts\"\r\n  }\r\n)"
+						},
+						"outputs": [
+							"Write"
+						]
+					},
+					{
+						"name": "Breakup",
+						"display": {
+							"position": {
+								"x": 152,
+								"y": 0
+							}
+						},
+						"config": {
+							"type": ".BreakupConfig",
+							"breakupType": "array",
+							"depth": 1
+						},
+						"outputs": [
+							"OnChange"
+						]
+					},
+					{
+						"name": "Write",
+						"display": {
+							"position": {
+								"x": 1642,
+								"y": -14
+							}
+						},
+						"config": {
+							"type": ".WriteConfig",
+							"failureOutputs": [],
+							"references": [
+								"{{Connection.Internal.UNS_Internal_NonRetained_QoS0}}"
+							],
+							"writeReturn": "ignore"
+						},
+						"outputs": []
+					},
+					{
+						"name": "ErrorLog",
+						"display": {
+							"position": {
+								"x": 1338,
+								"y": 80
+							}
+						},
+						"config": {
+							"type": ".WriteConfig",
+							"failureOutputs": [],
+							"references": [
+								"{{System.EventLog.Error}}"
+							],
+							"writeReturn": "ignore"
+						},
+						"outputs": []
+					},
+					{
+						"name": "OnChange",
+						"display": {
+							"position": {
+								"x": 517,
+								"y": 0
+							}
+						},
+						"config": {
+							"type": ".OnChangeConfig",
+							"outputMode": "all",
+							"persistMode": "memory",
+							"keyExpression": "stage.setBufferKey(event.value._path);",
+							"inclusionList": [],
+							"metadataKey": "bufferKey",
+							"trackChanges": [
+								"Counts"
+							],
+							"ignoreChanges": []
+						},
+						"outputs": [
+							"Read"
+						]
+					}
+				],
+				"trackActivity": false,
+				"triggers": [
+					{
+						"name": "EventTrigger",
+						"display": {
+							"position": {
+								"x": -316,
+								"y": 0
+							}
+						},
+						"config": {
+							"type": ".TriggerEvent",
+							"enabled": true,
+							"reference": "{{Connection.Ignition_Core.Equipment_Process_All}}"
+						}
+					}
+				],
+				"errorHandler": {
+					"type": "default"
+				}
+			},
+			{
+				"name": "UNS_Equipment_Definition",
+				"description": "Publishes equipment definition/metadata to UNS on value change",
+				"groupAs": "/UNS/Equipment",
+				"tags": [],
+				"inputStages": [
+					"Breakup"
+				],
+				"stages": [
+					{
+						"name": "Write",
+						"display": {
+							"position": {
+								"x": 1633,
+								"y": -13
+							}
+						},
+						"config": {
+							"type": ".WriteConfig",
+							"failureOutputs": [],
+							"references": [
+								"{{Connection.Internal.UNS_Internal_Retained_QoS1}}"
+							],
+							"writeReturn": "ignore"
+						},
+						"outputs": []
+					},
+					{
+						"name": "ErrorLog",
+						"display": {
+							"position": {
+								"x": 1330,
+								"y": 83
+							}
+						},
+						"config": {
+							"type": ".WriteConfig",
+							"failureOutputs": [],
+							"references": [
+								"{{System.EventLog.Error}}"
+							],
+							"writeReturn": "ignore"
+						},
+						"outputs": []
+					},
+					{
+						"name": "JSONata_Definition",
+						"display": {
+							"position": {
+								"x": 1274,
+								"y": -13
+							}
+						},
+						"config": {
+							"type": ".JSONataTransformConfig",
+							"transformExpression": "(\n  $equipment := event.value[0];\n  {\n    \"payload\": {\n      \"timestamp\": $now(),\n      \"_model\": $equipment._model,\n      \"_name\": $equipment._name,\n      \"_path\": $equipment._path,\n      \"Definition\": $equipment.Definition\n    },\n    \"topic\": $equipment.Definition.Path & \"/definition\"\n  }\n)"
+						},
+						"outputs": [
+							"Write"
+						]
+					},
+					{
+						"name": "Breakup",
+						"display": {
+							"position": {
+								"x": 162,
+								"y": 0
+							}
+						},
+						"config": {
+							"type": ".BreakupConfig",
+							"breakupType": "array",
+							"depth": 1
+						},
+						"outputs": [
+							"OnChange"
+						]
+					},
+					{
+						"name": "OnChange",
+						"display": {
+							"position": {
+								"x": 524,
+								"y": 0
+							}
+						},
+						"config": {
+							"type": ".OnChangeConfig",
+							"outputMode": "all",
+							"persistMode": "memory",
+							"keyExpression": "stage.setBufferKey(event.value._path);",
+							"inclusionList": [],
+							"metadataKey": "bufferKey",
+							"trackChanges": [
+								"Definition"
+							],
+							"ignoreChanges": []
+						},
+						"outputs": [
+							"Read"
+						]
+					},
+					{
+						"name": "Read",
+						"display": {
+							"position": {
+								"x": 886,
+								"y": 0
+							}
+						},
+						"config": {
+							"type": ".ReadConfig",
+							"failureOutputs": [
+								"ErrorLog"
+							],
+							"reference": {
+								"type": "Advanced",
+								"refType": "Input",
+								"name": "Ignition_Core",
+								"ioName": "Equipment_Process_DynamicPath",
+								"path": "",
+								"params": "{\"path\": \"{{event.value._path}}\"}"
+							}
+						},
+						"outputs": [
+							"JSONata_Definition"
+						]
+					}
+				],
+				"trackActivity": false,
+				"triggers": [
+					{
+						"name": "EventTrigger",
+						"display": {
+							"position": {
+								"x": -339,
+								"y": 0
+							}
+						},
+						"config": {
+							"type": ".TriggerEvent",
+							"enabled": true,
+							"reference": "{{Connection.Ignition_Core.Equipment_Process_All}}"
+						}
+					}
+				],
+				"errorHandler": {
+					"type": "default"
+				}
+			},
+			{
+				"name": "UNS_Equipment_KPIs",
+				"description": "Publishes KPI metrics to UNS on value change",
+				"groupAs": "/UNS/Equipment",
+				"tags": [],
+				"inputStages": [
+					"Breakup"
+				],
+				"stages": [
+					{
+						"name": "JSONata_KPIs",
+						"display": {
+							"position": {
+								"x": 1243,
+								"y": -15
+							}
+						},
+						"config": {
+							"type": ".JSONataTransformConfig",
+							"transformExpression": "(\r\n  $equipment := event.value[0];\r\n  $baseTopic := $equipment.Definition.Path;\r\n  $keys($equipment.KPIs) ~> $map(function($kpiName) {\r\n    {\r\n      \"payload\": {\r\n        \"timestamp\": $now(),\r\n        \"_model\": $equipment._model,\r\n        \"_name\": $equipment._name,\r\n        \"_path\": $equipment._path,\r\n        \"kpiName\": $kpiName,\r\n        \"value\": $lookup($equipment.KPIs, $kpiName)\r\n      },\r\n      \"topic\": $baseTopic & \"/kpis/\" & $lowercase($kpiName)\r\n    }\r\n  })\r\n)"
+						},
+						"outputs": [
+							"Breakup_KPIs"
+						]
+					},
+					{
+						"name": "Breakup_KPIs",
+						"display": {
+							"position": {
+								"x": 1420,
+								"y": -15
+							}
+						},
+						"config": {
+							"type": ".BreakupConfig",
+							"breakupType": "array",
+							"depth": 1
+						},
+						"outputs": [
+							"Write"
+						]
+					},
+					{
+						"name": "Read",
+						"display": {
+							"position": {
+								"x": 864,
+								"y": 0
+							}
+						},
+						"config": {
+							"type": ".ReadConfig",
+							"failureOutputs": [
+								"ErrorLog"
+							],
+							"reference": {
+								"type": "Advanced",
+								"refType": "Input",
+								"name": "Ignition_Core",
+								"ioName": "Equipment_Process_DynamicPath",
+								"path": "",
+								"params": "{\"path\": \"{{event.value._path}}\"}"
+							}
+						},
+						"outputs": [
+							"JSONata_KPIs"
+						]
+					},
+					{
+						"name": "ErrorLog",
+						"display": {
+							"position": {
+								"x": 1286,
+								"y": 81
+							}
+						},
+						"config": {
+							"type": ".WriteConfig",
+							"failureOutputs": [],
+							"references": [
+								"{{System.EventLog.Error}}"
+							],
+							"writeReturn": "ignore"
+						},
+						"outputs": []
+					},
+					{
+						"name": "OnChange",
+						"display": {
+							"position": {
+								"x": 504,
+								"y": 0
+							}
+						},
+						"config": {
+							"type": ".OnChangeConfig",
+							"outputMode": "all",
+							"persistMode": "memory",
+							"keyExpression": "stage.setBufferKey(event.value._path);",
+							"inclusionList": [],
+							"metadataKey": "bufferKey",
+							"trackChanges": [
+								"KPIs"
+							],
+							"ignoreChanges": []
+						},
+						"outputs": [
+							"Read"
+						]
+					},
+					{
+						"name": "Breakup",
+						"display": {
+							"position": {
+								"x": 146,
+								"y": 0
+							}
+						},
+						"config": {
+							"type": ".BreakupConfig",
+							"breakupType": "array",
+							"depth": 1
+						},
+						"outputs": [
+							"OnChange"
+						]
+					},
+					{
+						"name": "Write",
+						"display": {
+							"position": {
+								"x": 1601,
+								"y": -15
+							}
+						},
+						"config": {
+							"type": ".WriteConfig",
+							"failureOutputs": [],
+							"references": [
+								"{{Connection.Internal.UNS_Internal_Retained_QoS1}}"
+							],
+							"writeReturn": "ignore"
+						},
+						"outputs": []
+					}
+				],
+				"trackActivity": false,
+				"triggers": [
+					{
+						"name": "EventTrigger",
+						"display": {
+							"position": {
+								"x": -313,
+								"y": 0
+							}
+						},
+						"config": {
+							"type": ".TriggerEvent",
+							"enabled": true,
+							"reference": "{{Connection.Ignition_Core.Equipment_Process_All}}"
+						}
+					}
+				],
+				"errorHandler": {
+					"type": "default"
+				}
+			},
+			{
+				"name": "UNS_Equipment_Material",
+				"description": "Publishes material/recipe data to UNS on value change",
+				"groupAs": "/UNS/Equipment",
+				"tags": [],
+				"inputStages": [
+					"Breakup"
+				],
+				"stages": [
+					{
+						"name": "ErrorLog",
+						"display": {
+							"position": {
+								"x": 1278,
+								"y": 80
+							}
+						},
+						"config": {
+							"type": ".WriteConfig",
+							"failureOutputs": [],
+							"references": [
+								"{{System.EventLog.Error}}"
+							],
+							"writeReturn": "ignore"
+						},
+						"outputs": []
+					},
+					{
+						"name": "JSONata_Material",
+						"display": {
+							"position": {
+								"x": 1224,
+								"y": -15
+							}
+						},
+						"config": {
+							"type": ".JSONataTransformConfig",
+							"transformExpression": "(\r\n    $equipment := event.value[0];\r\n    {\r\n    \"payload\": {\r\n        \"timestamp\": $now(),\r\n        \"_model\": $equipment._model,\r\n        \"_name\": $equipment._name,\r\n        \"_path\": $equipment._path,\r\n        \"value\": $equipment.Material ~> $sift(function($v, $k) { $substring($k, 0, 1) != \"_\" })\r\n    },\r\n    \"topic\": $equipment.Definition.Path & \"/material\"\r\n    }\r\n)\r\n"
+						},
+						"outputs": [
+							"Write"
+						]
+					},
+					{
+						"name": "OnChange",
+						"display": {
+							"position": {
+								"x": 498,
+								"y": 0
+							}
+						},
+						"config": {
+							"type": ".OnChangeConfig",
+							"outputMode": "all",
+							"persistMode": "memory",
+							"keyExpression": "stage.setBufferKey(event.value._path);",
+							"inclusionList": [],
+							"metadataKey": "bufferKey",
+							"trackChanges": [
+								"Material"
+							],
+							"ignoreChanges": []
+						},
+						"outputs": [
+							"Read"
+						]
+					},
+					{
+						"name": "Breakup",
+						"display": {
+							"position": {
+								"x": 143,
+								"y": 0
+							}
+						},
+						"config": {
+							"type": ".BreakupConfig",
+							"breakupType": "array",
+							"depth": 1
+						},
+						"outputs": [
+							"OnChange"
+						]
+					},
+					{
+						"name": "Read",
+						"display": {
+							"position": {
+								"x": 857,
+								"y": 0
+							}
+						},
+						"config": {
+							"type": ".ReadConfig",
+							"failureOutputs": [
+								"ErrorLog"
+							],
+							"reference": {
+								"type": "Advanced",
+								"refType": "Input",
+								"name": "Ignition_Core",
+								"ioName": "Equipment_Process_DynamicPath",
+								"path": "",
+								"params": "{\"path\": \"{{event.value._path}}\"}"
+							}
+						},
+						"outputs": [
+							"JSONata_Material"
+						]
+					},
+					{
+						"name": "Write",
+						"display": {
+							"position": {
+								"x": 1584,
+								"y": -15
+							}
+						},
+						"config": {
+							"type": ".WriteConfig",
+							"failureOutputs": [],
+							"references": [
+								"{{Connection.Internal.UNS_Internal_Retained_QoS1}}"
+							],
+							"writeReturn": "ignore"
+						},
+						"outputs": []
+					}
+				],
+				"trackActivity": false,
+				"triggers": [
+					{
+						"name": "EventTrigger",
+						"display": {
+							"position": {
+								"x": -309,
+								"y": 0
+							}
+						},
+						"config": {
+							"type": ".TriggerEvent",
+							"enabled": true,
+							"reference": "{{Connection.Ignition_Core.Equipment_Process_All}}"
+						}
+					}
+				],
+				"errorHandler": {
+					"type": "default"
+				}
+			},
+			{
+				"name": "UNS_Equipment_Production",
+				"description": "Publishes production run data to UNS on value change",
+				"groupAs": "/UNS/Equipment",
+				"tags": [],
+				"inputStages": [
+					"Breakup"
+				],
+				"stages": [
+					{
+						"name": "JSONata_Production",
+						"display": {
+							"position": {
+								"x": 1235,
+								"y": -15
+							}
+						},
+						"config": {
+							"type": ".JSONataTransformConfig",
+							"transformExpression": "(\r\n  $equipment := event.value[0];                                                                                                                                                                                                                                                                       {\r\n    \"payload\": {                                                                                                                                                                                                                                                                                  \r\n      \"timestamp\": $now(),\r\n      \"_model\": $equipment._model,\r\n      \"_name\": $equipment._name,\r\n      \"_path\": $equipment._path,\r\n      \"value\": $equipment.ProductionRun ~> $sift(function($v, $k) { $k != \"Duration\" })\r\n    },\r\n    \"topic\": $equipment.Definition.Path & \"/production\"\r\n  }\r\n)"
+						},
+						"outputs": [
+							"Write"
+						]
+					},
+					{
+						"name": "Write",
+						"display": {
+							"position": {
+								"x": 1594,
+								"y": -15
+							}
+						},
+						"config": {
+							"type": ".WriteConfig",
+							"failureOutputs": [],
+							"references": [
+								"{{Connection.Internal.UNS_Internal_Retained_QoS1}}"
+							],
+							"writeReturn": "ignore"
+						},
+						"outputs": []
+					},
+					{
+						"name": "Read",
+						"display": {
+							"position": {
+								"x": 854,
+								"y": 0
+							}
+						},
+						"config": {
+							"type": ".ReadConfig",
+							"failureOutputs": [
+								"ErrorLog"
+							],
+							"reference": {
+								"type": "Advanced",
+								"refType": "Input",
+								"name": "Ignition_Core",
+								"ioName": "Equipment_Process_DynamicPath",
+								"path": "",
+								"params": "{\"path\": \"{{event.value._path}}\"}"
+							}
+						},
+						"outputs": [
+							"JSONata_Production"
+						]
+					},
+					{
+						"name": "ErrorLog",
+						"display": {
+							"position": {
+								"x": 1304,
+								"y": 81
+							}
+						},
+						"config": {
+							"type": ".WriteConfig",
+							"failureOutputs": [],
+							"references": [
+								"{{System.EventLog.Error}}"
+							],
+							"writeReturn": "ignore"
+						},
+						"outputs": []
+					},
+					{
+						"name": "OnChange",
+						"display": {
+							"position": {
+								"x": 499,
+								"y": 0
+							}
+						},
+						"config": {
+							"type": ".OnChangeConfig",
+							"outputMode": "all",
+							"persistMode": "memory",
+							"keyExpression": "stage.setBufferKey(event.value._path);",
+							"inclusionList": [],
+							"metadataKey": "bufferKey",
+							"trackChanges": [
+								"ProductionRun"
+							],
+							"ignoreChanges": [
+								"ProductionRun.Duration"
+							]
+						},
+						"outputs": [
+							"Read"
+						]
+					},
+					{
+						"name": "Breakup",
+						"display": {
+							"position": {
+								"x": 144,
+								"y": 0
+							}
+						},
+						"config": {
+							"type": ".BreakupConfig",
+							"breakupType": "array",
+							"depth": 1
+						},
+						"outputs": [
+							"OnChange"
+						]
+					}
+				],
+				"trackActivity": false,
+				"triggers": [
+					{
+						"name": "EventTrigger",
+						"display": {
+							"position": {
+								"x": -307,
+								"y": 0
+							}
+						},
+						"config": {
+							"type": ".TriggerEvent",
+							"enabled": true,
+							"reference": "{{Connection.Ignition_Core.Equipment_Process_All}}"
+						}
+					}
+				],
+				"errorHandler": {
+					"type": "default"
+				}
+			},
+			{
+				"name": "UNS_Equipment_State",
+				"description": "Publishes machine state to UNS on value change",
+				"groupAs": "/UNS/Equipment",
+				"tags": [],
+				"inputStages": [
+					"Breakup"
+				],
+				"stages": [
+					{
+						"name": "ErrorLog",
+						"display": {
+							"position": {
+								"x": 1278,
+								"y": 80
+							}
+						},
+						"config": {
+							"type": ".WriteConfig",
+							"failureOutputs": [],
+							"references": [
+								"{{System.EventLog.Error}}"
+							],
+							"writeReturn": "ignore"
+						},
+						"outputs": []
+					},
+					{
+						"name": "JSONata_State",
+						"display": {
+							"position": {
+								"x": 1224,
+								"y": -15
+							}
+						},
+						"config": {
+							"type": ".JSONataTransformConfig",
+							"transformExpression": "(\r\n    $equipment := event.value[0];\r\n    {\r\n    \"payload\": {\r\n        \"timestamp\": $now(),\r\n        \"_model\": $equipment._model,\r\n        \"_name\": $equipment._name,\r\n        \"_path\": $equipment._path,\r\n        \"value\": $equipment.State ~> $sift(function($v, $k) { $k != \"Duration\" })\r\n    },\r\n    \"topic\": $equipment.Definition.Path & \"/state\"\r\n    }\r\n)\r\n"
+						},
+						"outputs": [
+							"Write"
+						]
+					},
+					{
+						"name": "OnChange",
+						"display": {
+							"position": {
+								"x": 498,
+								"y": 0
+							}
+						},
+						"config": {
+							"type": ".OnChangeConfig",
+							"outputMode": "all",
+							"persistMode": "memory",
+							"keyExpression": "stage.setBufferKey(event.value._path);",
+							"inclusionList": [],
+							"metadataKey": "bufferKey",
+							"trackChanges": [
+								"State"
+							],
+							"ignoreChanges": [
+								"State.Duration"
+							]
+						},
+						"outputs": [
+							"Read"
+						]
+					},
+					{
+						"name": "Breakup",
+						"display": {
+							"position": {
+								"x": 143,
+								"y": 0
+							}
+						},
+						"config": {
+							"type": ".BreakupConfig",
+							"breakupType": "array",
+							"depth": 1
+						},
+						"outputs": [
+							"OnChange"
+						]
+					},
+					{
+						"name": "Read",
+						"display": {
+							"position": {
+								"x": 857,
+								"y": 0
+							}
+						},
+						"config": {
+							"type": ".ReadConfig",
+							"failureOutputs": [
+								"ErrorLog"
+							],
+							"reference": {
+								"type": "Advanced",
+								"refType": "Input",
+								"name": "Ignition_Core",
+								"ioName": "Equipment_Process_DynamicPath",
+								"path": "",
+								"params": "{\"path\": \"{{event.value._path}}\"}"
+							}
+						},
+						"outputs": [
+							"JSONata_State"
+						]
+					},
+					{
+						"name": "Write",
+						"display": {
+							"position": {
+								"x": 1584,
+								"y": -15
+							}
+						},
+						"config": {
+							"type": ".WriteConfig",
+							"failureOutputs": [],
+							"references": [
+								"{{Connection.Internal.UNS_Internal_Retained_QoS1}}"
+							],
+							"writeReturn": "ignore"
+						},
+						"outputs": []
+					}
+				],
+				"trackActivity": false,
+				"triggers": [
+					{
+						"name": "EventTrigger",
+						"display": {
+							"position": {
+								"x": -309,
+								"y": 0
+							}
+						},
+						"config": {
+							"type": ".TriggerEvent",
+							"enabled": true,
+							"reference": "{{Connection.Ignition_Core.Equipment_Process_All}}"
+						}
+					}
+				],
+				"errorHandler": {
+					"type": "default"
+				}
+			},
+			{
+				"name": "UNS_Equipment_Telemetry",
+				"description": "Publishes real-time telemetry to UNS on value change",
+				"groupAs": "/UNS/Equipment",
+				"tags": [],
+				"inputStages": [
+					"Breakup"
+				],
+				"stages": [
+					{
+						"name": "Read",
+						"display": {
+							"position": {
+								"x": 866,
+								"y": 0
+							}
+						},
+						"config": {
+							"type": ".ReadConfig",
+							"failureOutputs": [
+								"ErrorLog"
+							],
+							"reference": {
+								"type": "Advanced",
+								"refType": "Input",
+								"name": "Ignition_Core",
+								"ioName": "Equipment_Process_DynamicPath",
+								"path": "",
+								"params": "{\"path\": \"{{event.value._path}}\"}"
+							}
+						},
+						"outputs": [
+							"JSONata_Telemetry"
+						]
+					},
+					{
+						"name": "JSONata_Telemetry",
+						"display": {
+							"position": {
+								"x": 1245,
+								"y": -15
+							}
+						},
+						"config": {
+							"type": ".JSONataTransformConfig",
+							"transformExpression": "(\r\n  $equipment := event.value[0];\r\n  $baseTopic := $equipment.Definition.Path;\r\n  $buildNumeric := function($param) {\r\n    $param.Value ? {\r\n      \"value\": $param.Value.Value,\r\n      \"string\": $param.Value.String,\r\n      \"percent\": $param.Value.Percent,\r\n      \"unitsOfMeasure\": $param.Value.UnitsOfMeasure\r\n    } : null\r\n  };\r\n  $levelFiltered := $equipment.Level ? $sift($equipment.Level, function($v, $k) { $substring($k, 0, 1) != \"_\" }) : {};\r\n  $levelTelemetry := $each($levelFiltered, function($v, $k) { {\"level/\" & $lowercase($k): $v} }) ~> $merge();\r\n  $allTelemetry := $merge([\r\n    {\"temperature\": $buildNumeric($equipment.Temperature)},\r\n    {\"pressure\": $buildNumeric($equipment.Pressure)},\r\n    {\"weight\": $buildNumeric($equipment.Weight)},\r\n    {\"flowrate\": $buildNumeric($equipment.FlowRate)},\r\n    {\"volume\": $buildNumeric($equipment.Volume)},\r\n    {\"emptyswitch\": $equipment.EmptySwitch.Value ? {\"value\": $equipment.EmptySwitch.Value.Value, \"string\": $equipment.EmptySwitch.Value.String} : null},\r\n    $levelTelemetry ? $levelTelemetry : {}\r\n  ]);\r\n  $keys($allTelemetry) ~> $filter(function($k) { $lookup($allTelemetry, $k) != null }) ~> $map(function($name) {\r\n    {\r\n      \"payload\": {\r\n        \"timestamp\": $now(),\r\n        \"_model\": $equipment._model,\r\n        \"_name\": $equipment._name,\r\n        \"_path\": $equipment._path,\r\n        \"parameterName\": $name,\r\n        \"value\": $lookup($allTelemetry, $name)\r\n      },\r\n      \"topic\": $baseTopic & \"/telemetry/\" & $name\r\n    }\r\n  })\r\n)"
+						},
+						"outputs": [
+							"Breakup_Telemetry"
+						]
+					},
+					{
+						"name": "Breakup_Telemetry",
+						"display": {
+							"position": {
+								"x": 1676,
+								"y": -18
+							}
+						},
+						"config": {
+							"type": ".BreakupConfig",
+							"breakupType": "array",
+							"depth": 1
+						},
+						"outputs": [
+							"Switch"
+						]
+					},
+					{
+						"name": "OnChange",
+						"display": {
+							"position": {
+								"x": 506,
+								"y": 0
+							}
+						},
+						"config": {
+							"type": ".OnChangeConfig",
+							"outputMode": "all",
+							"persistMode": "memory",
+							"keyExpression": "stage.setBufferKey(event.value._path);",
+							"inclusionList": [],
+							"metadataKey": "bufferKey",
+							"trackChanges": [
+								"Temperature",
+								"Pressure",
+								"Weight",
+								"FlowRate",
+								"Volume",
+								"EmptySwitch",
+								"Speed",
+								"Level",
+								"Blocked",
+								"Starved"
+							],
+							"ignoreChanges": []
+						},
+						"outputs": [
+							"Read"
+						]
+					},
+					{
+						"name": "Write",
+						"display": {
+							"position": {
+								"x": 2470,
+								"y": 20
+							}
+						},
+						"config": {
+							"type": ".WriteConfig",
+							"failureOutputs": [],
+							"references": [
+								"{{Connection.Internal.UNS_Internal_NonRetained_QoS0}}"
+							],
+							"writeReturn": "ignore"
+						},
+						"outputs": []
+					},
+					{
+						"name": "ErrorLog",
+						"display": {
+							"position": {
+								"x": 1313,
+								"y": 80
+							}
+						},
+						"config": {
+							"type": ".WriteConfig",
+							"failureOutputs": [],
+							"references": [
+								"{{System.EventLog.Error}}"
+							],
+							"writeReturn": "ignore"
+						},
+						"outputs": []
+					},
+					{
+						"name": "Breakup",
+						"display": {
+							"position": {
+								"x": 147,
+								"y": 0
+							}
+						},
+						"config": {
+							"type": ".BreakupConfig",
+							"breakupType": "array",
+							"depth": 1
+						},
+						"outputs": [
+							"OnChange"
+						]
+					},
+					{
+						"name": "Switch",
+						"display": {
+							"position": {
+								"x": 2047,
+								"y": 29
+							}
+						},
+						"config": {
+							"type": ".SwitchConfig",
+							"switchCases": [
+								{
+									"expression": "return event.value.payload.parameterName.startsWith('level/_')",
+									"outputs": [],
+									"description": "Drop level/_ topics"
+								},
+								{
+									"expression": "return true",
+									"outputs": [
+										"Write"
+									],
+									"description": "Publish all others"
+								}
+							],
+							"evaluationType": "onFirst"
+						},
+						"outputs": []
+					}
+				],
+				"trackActivity": true,
+				"triggers": [
+					{
+						"name": "EventTrigger",
+						"display": {
+							"position": {
+								"x": -315,
+								"y": 0
+							}
+						},
+						"config": {
+							"type": ".TriggerEvent",
+							"enabled": true,
+							"reference": "{{Connection.Ignition_Core.Equipment_Process_All}}"
+						}
+					}
+				],
+				"errorHandler": {
+					"type": "default"
+				}
+			}
+		],
+		"namespace": []
+	},
+	"network": {
+		"groups": [],
+		"hubs": []
+	}
+}

@@ -6,6 +6,10 @@
 #
 # It is used to deploy the analytics services using Docker Compose.
 #
+# LIMITATION: Flow Software Config Tool requires HTTP (not HTTPS), so remote
+# management via Cloudflare Tunnel is not supported. Management must be done
+# from the local network or via VPN.
+#
 # =============================================================================
 
 # =============================================================================
@@ -79,25 +83,21 @@ services:
     hostname: analytics-flow-bootstrap
     environment:
       <<: *common-environment
-      FLOW_PLATFORM_NAME: ${ANALYTICS_FLOW_PLATFORM_NAME}
-      FLOW_ADMIN_PASSWORD: ${ANALYTICS_FLOW_ADMIN_PASSWORD}
-      FLOW_DB_SERVER: analytics-mssql
-      FLOW_DB_PORT: 1433
-      FLOW_DB_NAME: ${ANALYTICS_FLOW_DB_NAME:-FlowSoftware}
-      FLOW_DB_USERNAME: sa
-      FLOW_DB_PASSWORD: ${ANALYTICS_MSSQL_SA_PASSWORD}
-      TIMESCALE_HOST: timescaledb
-      TIMESCALE_PORT: 5432
-      TIMESCALE_DB: proveit_ops
-      TIMESCALE_USER: postgres
-      TIMESCALE_PASSWORD: ${ANALYTICS_POSTGRES_PASSWORD}
+      # Note: Database configuration is done via Flow Config Tool, not environment variables
+      # Connect Config Tool using platform name format: <host>:<port>;<docker-hostname>
+      #
+      # Platform Name: <server-ip>:4501;analytics-flow-bootstrap
+      #
+      # Then configure database in SYSTEM\Properties:
+      #   Server: analytics-mssql,1433
+      #   Database: FlowSoftware
+      #   Username: sa
+      #   Password: (your MSSQL password)
     volumes:
       - proveit-analytics-flow-data:/usr/local/flowbootstrap/appData
       - proveit-analytics-flow-config:/usr/local/flowbootstrap/config
     ports:
       - "${ANALYTICS_FLOW_BOOTSTRAP_PORT:-4501}:4501"
-      - "${ANALYTICS_FLOW_HTTP_PORT:-80}:80"
-      - "${ANALYTICS_FLOW_HTTPS_PORT:-443}:443"
     networks:
       - operations-network
     depends_on:

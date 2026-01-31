@@ -1,0 +1,584 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UANodeSet xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+           xmlns="http://opcfoundation.org/UA/2011/03/UANodeSet.xsd">
+
+  <NamespaceUris>
+    <Uri>http://cappyhour.com/UA/MES/</Uri>
+  </NamespaceUris>
+
+  <Models>
+    <Model ModelUri="http://cappyhour.com/UA/MES/" Version="1.0.0" PublicationDate="2025-01-21T00:00:00Z">
+      <RequiredModel ModelUri="http://opcfoundation.org/UA/" Version="1.05.03"/>
+    </Model>
+  </Models>
+
+  <Aliases>
+    <Alias Alias="Boolean">i=1</Alias>
+    <Alias Alias="Int64">i=8</Alias>
+    <Alias Alias="String">i=12</Alias>
+    <Alias Alias="DateTime">i=13</Alias>
+    <Alias Alias="ByteString">i=15</Alias>
+    <Alias Alias="HasSubtype">i=45</Alias>
+    <Alias Alias="HasProperty">i=46</Alias>
+    <Alias Alias="HasTypeDefinition">i=40</Alias>
+    <Alias Alias="HasModellingRule">i=37</Alias>
+    <Alias Alias="Mandatory">i=78</Alias>
+    <Alias Alias="Optional">i=80</Alias>
+    <Alias Alias="BaseObjectType">i=58</Alias>
+    <Alias Alias="PropertyType">i=68</Alias>
+  </Aliases>
+
+  <!-- ============================================ -->
+  <!-- NOTE LINK MODELS (Many-to-Many)              -->
+  <!-- ============================================ -->
+
+  <!-- ProductionRunNote -->
+  <UAObjectType NodeId="ns=1;i=4001" BrowseName="1:ProductionRunNote">
+    <DisplayName>ProductionRunNote</DisplayName>
+    <Description>Notes attached to production runs</Description>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=4002</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=4003</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=4004</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=4005</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=4006</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=4007</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=4008</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=4009</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariable NodeId="ns=1;i=4002" BrowseName="1:note_id" ParentNodeId="ns=1;i=4001" DataType="Int64">
+    <DisplayName>note_id</DisplayName>
+    <Description>Primary Key</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=4001</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=4003" BrowseName="1:production_log_id" ParentNodeId="ns=1;i=4001" DataType="Int64">
+    <DisplayName>production_log_id</DisplayName>
+    <Description>Foreign Key to parent production run</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=4001</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=4004" BrowseName="1:note" ParentNodeId="ns=1;i=4001" DataType="String">
+    <DisplayName>note</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=4001</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=4005" BrowseName="1:created_by" ParentNodeId="ns=1;i=4001" DataType="String">
+    <DisplayName>created_by</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=80</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=4001</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=4006" BrowseName="1:created_at" ParentNodeId="ns=1;i=4001" DataType="DateTime">
+    <DisplayName>created_at</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=4001</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=4007" BrowseName="1:updated_by" ParentNodeId="ns=1;i=4001" DataType="String">
+    <DisplayName>updated_by</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=80</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=4001</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=4008" BrowseName="1:updated_at" ParentNodeId="ns=1;i=4001" DataType="DateTime">
+    <DisplayName>updated_at</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=80</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=4001</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=4009" BrowseName="1:removed" ParentNodeId="ns=1;i=4001" DataType="Boolean">
+    <DisplayName>removed</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=80</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=4001</Reference>
+    </References>
+  </UAVariable>
+
+  <!-- StateEventNote -->
+  <UAObjectType NodeId="ns=1;i=4101" BrowseName="1:StateEventNote">
+    <DisplayName>StateEventNote</DisplayName>
+    <Description>Notes attached to state events</Description>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=4102</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=4103</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=4104</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=4105</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=4106</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=4107</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=4108</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=4109</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariable NodeId="ns=1;i=4102" BrowseName="1:note_id" ParentNodeId="ns=1;i=4101" DataType="Int64">
+    <DisplayName>note_id</DisplayName>
+    <Description>Primary Key</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=4101</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=4103" BrowseName="1:state_log_id" ParentNodeId="ns=1;i=4101" DataType="Int64">
+    <DisplayName>state_log_id</DisplayName>
+    <Description>Foreign Key to parent state event</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=4101</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=4104" BrowseName="1:note" ParentNodeId="ns=1;i=4101" DataType="String">
+    <DisplayName>note</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=4101</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=4105" BrowseName="1:created_by" ParentNodeId="ns=1;i=4101" DataType="String">
+    <DisplayName>created_by</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=80</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=4101</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=4106" BrowseName="1:created_at" ParentNodeId="ns=1;i=4101" DataType="DateTime">
+    <DisplayName>created_at</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=4101</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=4107" BrowseName="1:updated_by" ParentNodeId="ns=1;i=4101" DataType="String">
+    <DisplayName>updated_by</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=80</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=4101</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=4108" BrowseName="1:updated_at" ParentNodeId="ns=1;i=4101" DataType="DateTime">
+    <DisplayName>updated_at</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=80</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=4101</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=4109" BrowseName="1:removed" ParentNodeId="ns=1;i=4101" DataType="Boolean">
+    <DisplayName>removed</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=80</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=4101</Reference>
+    </References>
+  </UAVariable>
+
+  <!-- CountEventNote -->
+  <UAObjectType NodeId="ns=1;i=4201" BrowseName="1:CountEventNote">
+    <DisplayName>CountEventNote</DisplayName>
+    <Description>Notes attached to count events</Description>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=4202</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=4203</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=4204</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=4205</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=4206</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=4207</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=4208</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=4209</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariable NodeId="ns=1;i=4202" BrowseName="1:note_id" ParentNodeId="ns=1;i=4201" DataType="Int64">
+    <DisplayName>note_id</DisplayName>
+    <Description>Primary Key</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=4201</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=4203" BrowseName="1:count_log_id" ParentNodeId="ns=1;i=4201" DataType="Int64">
+    <DisplayName>count_log_id</DisplayName>
+    <Description>Foreign Key to parent count event</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=4201</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=4204" BrowseName="1:note" ParentNodeId="ns=1;i=4201" DataType="String">
+    <DisplayName>note</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=4201</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=4205" BrowseName="1:created_by" ParentNodeId="ns=1;i=4201" DataType="String">
+    <DisplayName>created_by</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=80</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=4201</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=4206" BrowseName="1:created_at" ParentNodeId="ns=1;i=4201" DataType="DateTime">
+    <DisplayName>created_at</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=4201</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=4207" BrowseName="1:updated_by" ParentNodeId="ns=1;i=4201" DataType="String">
+    <DisplayName>updated_by</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=80</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=4201</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=4208" BrowseName="1:updated_at" ParentNodeId="ns=1;i=4201" DataType="DateTime">
+    <DisplayName>updated_at</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=80</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=4201</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=4209" BrowseName="1:removed" ParentNodeId="ns=1;i=4201" DataType="Boolean">
+    <DisplayName>removed</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=80</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=4201</Reference>
+    </References>
+  </UAVariable>
+
+  <!-- QualityMeasurementNote -->
+  <UAObjectType NodeId="ns=1;i=4301" BrowseName="1:QualityMeasurementNote">
+    <DisplayName>QualityMeasurementNote</DisplayName>
+    <Description>Notes attached to quality measurements</Description>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=4302</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=4303</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=4304</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=4305</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=4306</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=4307</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=4308</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=4309</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariable NodeId="ns=1;i=4302" BrowseName="1:note_id" ParentNodeId="ns=1;i=4301" DataType="Int64">
+    <DisplayName>note_id</DisplayName>
+    <Description>Primary Key</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=4301</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=4303" BrowseName="1:measurement_log_id" ParentNodeId="ns=1;i=4301" DataType="Int64">
+    <DisplayName>measurement_log_id</DisplayName>
+    <Description>Foreign Key to parent measurement</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=4301</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=4304" BrowseName="1:note" ParentNodeId="ns=1;i=4301" DataType="String">
+    <DisplayName>note</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=4301</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=4305" BrowseName="1:created_by" ParentNodeId="ns=1;i=4301" DataType="String">
+    <DisplayName>created_by</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=80</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=4301</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=4306" BrowseName="1:created_at" ParentNodeId="ns=1;i=4301" DataType="DateTime">
+    <DisplayName>created_at</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=4301</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=4307" BrowseName="1:updated_by" ParentNodeId="ns=1;i=4301" DataType="String">
+    <DisplayName>updated_by</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=80</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=4301</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=4308" BrowseName="1:updated_at" ParentNodeId="ns=1;i=4301" DataType="DateTime">
+    <DisplayName>updated_at</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=80</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=4301</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=4309" BrowseName="1:removed" ParentNodeId="ns=1;i=4301" DataType="Boolean">
+    <DisplayName>removed</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=80</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=4301</Reference>
+    </References>
+  </UAVariable>
+
+  <!-- KPIEventNote -->
+  <UAObjectType NodeId="ns=1;i=4401" BrowseName="1:KPIEventNote">
+    <DisplayName>KPIEventNote</DisplayName>
+    <Description>Notes attached to KPI events</Description>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=4402</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=4403</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=4404</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=4405</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=4406</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=4407</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=4408</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=4409</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariable NodeId="ns=1;i=4402" BrowseName="1:note_id" ParentNodeId="ns=1;i=4401" DataType="Int64">
+    <DisplayName>note_id</DisplayName>
+    <Description>Primary Key</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=4401</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=4403" BrowseName="1:kpi_log_id" ParentNodeId="ns=1;i=4401" DataType="Int64">
+    <DisplayName>kpi_log_id</DisplayName>
+    <Description>Foreign Key to parent KPI event</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=4401</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=4404" BrowseName="1:note" ParentNodeId="ns=1;i=4401" DataType="String">
+    <DisplayName>note</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=4401</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=4405" BrowseName="1:created_by" ParentNodeId="ns=1;i=4401" DataType="String">
+    <DisplayName>created_by</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=80</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=4401</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=4406" BrowseName="1:created_at" ParentNodeId="ns=1;i=4401" DataType="DateTime">
+    <DisplayName>created_at</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=4401</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=4407" BrowseName="1:updated_by" ParentNodeId="ns=1;i=4401" DataType="String">
+    <DisplayName>updated_by</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=80</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=4401</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=4408" BrowseName="1:updated_at" ParentNodeId="ns=1;i=4401" DataType="DateTime">
+    <DisplayName>updated_at</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=80</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=4401</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=4409" BrowseName="1:removed" ParentNodeId="ns=1;i=4401" DataType="Boolean">
+    <DisplayName>removed</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=80</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=4401</Reference>
+    </References>
+  </UAVariable>
+
+  <!-- ============================================ -->
+  <!-- AUDIT MODEL (mes_audit.change_log)          -->
+  <!-- ============================================ -->
+
+  <!-- ChangeLog: Audit trail matching mes_audit.change_log schema -->
+  <UAObjectType NodeId="ns=1;i=5001" BrowseName="1:ChangeLog">
+    <DisplayName>ChangeLog</DisplayName>
+    <Description>Audit trail of all database changes (mes_audit.change_log)</Description>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=5002</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=5003</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=5004</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=5005</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=5006</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=5007</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=5008</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=5009</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=5010</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=5011</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=5012</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=5013</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariable NodeId="ns=1;i=5002" BrowseName="1:audit_id" ParentNodeId="ns=1;i=5001" DataType="Int64">
+    <DisplayName>audit_id</DisplayName>
+    <Description>Primary Key (GENERATED ALWAYS AS IDENTITY)</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=5001</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=5003" BrowseName="1:schema_name" ParentNodeId="ns=1;i=5001" DataType="String">
+    <DisplayName>schema_name</DisplayName>
+    <Description>Database schema that was changed (e.g., mes_core)</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=5001</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=5004" BrowseName="1:table_name" ParentNodeId="ns=1;i=5001" DataType="String">
+    <DisplayName>table_name</DisplayName>
+    <Description>Table that was changed</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=5001</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=5005" BrowseName="1:operation" ParentNodeId="ns=1;i=5001" DataType="String">
+    <DisplayName>operation</DisplayName>
+    <Description>INSERT, UPDATE, or DELETE</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=5001</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=5006" BrowseName="1:record_key" ParentNodeId="ns=1;i=5001" DataType="String">
+    <DisplayName>record_key</DisplayName>
+    <Description>Primary key column name of the changed record</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=5001</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=5007" BrowseName="1:record_value" ParentNodeId="ns=1;i=5001" DataType="String">
+    <DisplayName>record_value</DisplayName>
+    <Description>Primary key value of the changed record</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=5001</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=5008" BrowseName="1:column_changes" ParentNodeId="ns=1;i=5001" DataType="ByteString">
+    <DisplayName>column_changes</DisplayName>
+    <Description>JSONB of changed columns with [old_value, new_value] arrays</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=80</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=5001</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=5009" BrowseName="1:changed_by" ParentNodeId="ns=1;i=5001" DataType="String">
+    <DisplayName>changed_by</DisplayName>
+    <Description>Database user who made the change (DEFAULT CURRENT_USER)</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=80</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=5001</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=5010" BrowseName="1:changed_at" ParentNodeId="ns=1;i=5001" DataType="DateTime">
+    <DisplayName>changed_at</DisplayName>
+    <Description>Timestamp of the change (DEFAULT CURRENT_TIMESTAMP)</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=80</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=5001</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=5011" BrowseName="1:session_username" ParentNodeId="ns=1;i=5001" DataType="String">
+    <DisplayName>session_username</DisplayName>
+    <Description>SESSION_USER at time of change</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=80</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=5001</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=5012" BrowseName="1:application_name" ParentNodeId="ns=1;i=5001" DataType="String">
+    <DisplayName>application_name</DisplayName>
+    <Description>Application that made the change</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=80</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=5001</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=5013" BrowseName="1:client_addr" ParentNodeId="ns=1;i=5001" DataType="String">
+    <DisplayName>client_addr</DisplayName>
+    <Description>Client IP address (INET stored as String)</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=80</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=5001</Reference>
+    </References>
+  </UAVariable>
+
+</UANodeSet>

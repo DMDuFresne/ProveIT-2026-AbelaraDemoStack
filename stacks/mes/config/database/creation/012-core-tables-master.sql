@@ -85,7 +85,7 @@ CREATE TABLE product_definition (
     product_description  TEXT NOT NULL,
     product_family_id    BIGINT REFERENCES product_family(product_family_id),
     unit_of_measure      TEXT DEFAULT 'each',
-    tolerance            NUMERIC(5,4) DEFAULT 0 CHECK (tolerance >= 0),
+    tolerance            NUMERIC(10,4) DEFAULT 0 CHECK (tolerance >= 0),
     ideal_cycle_time     NUMERIC(10,2) CHECK (ideal_cycle_time > 0),
     created_by           TEXT DEFAULT CURRENT_USER,
     created_at           TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
@@ -120,6 +120,7 @@ EXECUTE FUNCTION mes_audit.trgfn_log_change();
 -- ===============================================================
 
 CREATE TABLE performance_target (
+    performance_target_id BIGSERIAL PRIMARY KEY,
     product_id       BIGINT NOT NULL REFERENCES product_definition(product_id),
     asset_id         BIGINT NOT NULL REFERENCES asset_definition(asset_id),
     target_value     NUMERIC(10,2) NOT NULL CHECK (target_value > 0),
@@ -129,11 +130,12 @@ CREATE TABLE performance_target (
     updated_by       TEXT,
     updated_at       TIMESTAMPTZ,
     removed          BOOLEAN DEFAULT FALSE,
-    PRIMARY KEY (product_id, asset_id)
+    UNIQUE (product_id, asset_id)
 );
 
 COMMENT ON TABLE mes_core.performance_target IS E'@omit delete
 Defines expected performance metrics for a given asset and product.';
+COMMENT ON COLUMN mes_core.performance_target.performance_target_id IS 'Surrogate identity for the performance_target record.';
 COMMENT ON COLUMN mes_core.performance_target.asset_id IS 'Reference to the asset for the target.';
 COMMENT ON COLUMN mes_core.performance_target.product_id IS 'Reference to the product for the target.';
 COMMENT ON COLUMN mes_core.performance_target.target_value IS 'Expected ideal production rate (units/hour).';

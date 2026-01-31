@@ -1,8 +1,26 @@
 {
   "mcpServers": {
     "mes-postgres": {
+      "type": "http",
+      "url": "http://localhost:48100/mcp"
+    },
+    "mes-postgres-cloud": {
       "type": "sse",
-      "url": "http://localhost:47030/sse"
+      "url": "https://mes-database.mcp.abelara.cloud/sse"
+    },
+    "wms-fuuz": {
+      "type": "http",
+      "url": "https://api.build.abelara.fuuz.app/mcp",
+      "headers": {
+        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqd3RpZCI6ImNta2czZHZsbjAwOTEwMTR0M2l5NGczYnoiLCJpZCI6ImNta2czZHU5cDAwbmwwMXQ1NzMyeGM5ZWQiLCJpYXQiOjE3Njg1MjA0MDEsInVzZXJJZCI6ImNtZ2ZsMWZyMDAwNGYwMXJyYTc1M2g2am4iLCJ0ZW5hbnRJZCI6InByb3ZlSXRXbXMiLCJlbWFpbCI6ImR5bGFuQGFiZWxhcmEuY29tIiwiZW50ZXJwcmlzZUlkIjoiYWJlbGFyYSIsImF1ZCI6ImJ1aWxkLmFiZWxhcmEuZnV1ei5hcHAiLCJpc3MiOiJidWlsZC5hYmVsYXJhLmZ1dXouYXBwIn0.6OGTK8qYr9HUoz_5Ux3i057Sb4AhEDnYv_RgNg6wnzM"
+      }
+    },
+    "wms-highbyte": {
+      "type": "http",
+      "url": "http://192.168.30.231:45345/mcp",
+      "headers": {
+        "Authorization": "Bearer Abelara.jiNS273MfjLM9bPwsAKU2aJP7gjzfcn1JLcMHxbC9gU="
+      }
     }
   }
 }

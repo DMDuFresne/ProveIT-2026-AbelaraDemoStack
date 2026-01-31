@@ -306,7 +306,7 @@ BEGIN
         RETURN NEW;
     END IF;
 
-    IF NOT fn_validate_record_exists(table_name, column_name, value) THEN
+    IF NOT mes_core.fn_validate_record_exists(table_name, column_name, value) THEN
         RAISE EXCEPTION 'Invalid reference in table %, column % = %', table_name, column_name, value;
     END IF;
 

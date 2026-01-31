@@ -46,18 +46,22 @@ SELECT DISTINCT ON (sl.asset_id)
     sl.asset_id,
     sl.asset_name,
     sl.state_log_id,
+    sl.state_id,
     sl.state_name,
+    sl.state_type_id,
     sl.state_type_name,
+    st.is_downtime,
     sl.logged_at AS state_start,
     sl.downtime_reason_id,
     sl.downtime_reason_name,
     sl.additional_info,
     sl.logged_by
 FROM mes_core.state_log sl
+LEFT JOIN mes_core.state_type st ON st.state_type_id = sl.state_type_id
 WHERE sl.removed IS DISTINCT FROM TRUE
 ORDER BY sl.asset_id, sl.logged_at DESC;
 
-COMMENT ON VIEW mes_core.vw_state_active IS 'Latest active state per asset.';
+COMMENT ON VIEW mes_core.vw_state_active IS 'Latest active state per asset, including downtime status.';
 
 -- ===============================================================
 -- View: vw_state_duration_hourly
@@ -572,3 +576,126 @@ LEFT JOIN mes_core.kpi_log_note kln ON kln.kpi_log_id = kl.kpi_log_id AND kln.re
 WHERE kl.removed IS DISTINCT FROM TRUE;
 
 COMMENT ON VIEW mes_core.vw_unified_event_log IS 'Unified log combining state, production, count, measurement, and KPI events. WARNING: Always filter by logged_at or asset_id to avoid full table scans across 5 hypertables.';
+
+-- ===============================================================
+-- DATA QUALITY MONITORING VIEWS
+-- ===============================================================
+-- These views help identify data quality issues, particularly
+-- when edge systems fail to provide complete product information.
+-- ===============================================================
+
+-- ===============================================================
+-- View: vw_dq_unknown_product_counts
+-- Description: Count log entries with Unknown product (product_id = 1)
+-- Use: Monitor data quality - high counts indicate edge data issues
+-- ===============================================================
+
+CREATE OR REPLACE VIEW mes_core.vw_dq_unknown_product_counts AS
+SELECT
+    cl.count_log_id,
+    cl.asset_id,
+    cl.asset_name,
+    cl.count_type_id,
+    cl.count_type_name,
+    cl.quantity,
+    cl.production_log_id,
+    cl.additional_info,
+    cl.logged_by,
+    cl.logged_at
+FROM mes_core.count_log cl
+WHERE cl.product_id = 1  -- Reserved Unknown product ID
+  AND cl.removed IS DISTINCT FROM TRUE;
+
+COMMENT ON VIEW mes_core.vw_dq_unknown_product_counts IS 'Data Quality: Count log entries logged against Unknown product (ID=1). High counts indicate missing ProductId from edge equipment. Investigate tag configuration.';
+
+-- ===============================================================
+-- View: vw_dq_unknown_product_summary_hourly
+-- Description: Hourly summary of Unknown product counts by asset
+-- Use: Dashboard widget for data quality monitoring
+-- ===============================================================
+
+CREATE OR REPLACE VIEW mes_core.vw_dq_unknown_product_summary_hourly AS
+SELECT
+    cl.asset_id,
+    cl.asset_name,
+    cl.count_type_name,
+    time_bucket(INTERVAL '1 hour', cl.logged_at) AS hour,
+    COUNT(*) AS unknown_count_events,
+    SUM(cl.quantity) AS unknown_quantity_total
+FROM mes_core.count_log cl
+WHERE cl.product_id = 1  -- Reserved Unknown product ID
+  AND cl.removed IS DISTINCT FROM TRUE
+GROUP BY
+    cl.asset_id,
+    cl.asset_name,
+    cl.count_type_name,
+    hour
+ORDER BY hour DESC, unknown_count_events DESC;
+
+COMMENT ON VIEW mes_core.vw_dq_unknown_product_summary_hourly IS 'Data Quality: Hourly summary of Unknown product counts by asset. Use for dashboards to track edge data quality issues.';
+
+-- ===============================================================
+-- View: vw_dq_unknown_product_summary_daily
+-- Description: Daily summary of Unknown product counts by asset
+-- Use: Daily data quality report
+-- ===============================================================
+
+CREATE OR REPLACE VIEW mes_core.vw_dq_unknown_product_summary_daily AS
+SELECT
+    cl.asset_id,
+    cl.asset_name,
+    cl.count_type_name,
+    time_bucket(INTERVAL '1 day', cl.logged_at) AS day,
+    COUNT(*) AS unknown_count_events,
+    SUM(cl.quantity) AS unknown_quantity_total,
+    ROUND(COUNT(*)::numeric / NULLIF(total.total_events, 0) * 100, 2) AS unknown_percent
+FROM mes_core.count_log cl
+CROSS JOIN LATERAL (
+    SELECT COUNT(*) AS total_events
+    FROM mes_core.count_log cl2
+    WHERE cl2.asset_id = cl.asset_id
+      AND cl2.removed IS DISTINCT FROM TRUE
+      AND time_bucket(INTERVAL '1 day', cl2.logged_at) = time_bucket(INTERVAL '1 day', cl.logged_at)
+) total
+WHERE cl.product_id = 1  -- Reserved Unknown product ID
+  AND cl.removed IS DISTINCT FROM TRUE
+GROUP BY
+    cl.asset_id,
+    cl.asset_name,
+    cl.count_type_name,
+    day,
+    total.total_events
+ORDER BY day DESC, unknown_count_events DESC;
+
+COMMENT ON VIEW mes_core.vw_dq_unknown_product_summary_daily IS 'Data Quality: Daily summary of Unknown product counts with percentage. Target: 0% unknown. Investigate assets with >5% unknown products.';
+
+-- ===============================================================
+-- View: vw_dq_assets_with_unknown_products
+-- Description: Assets that have logged counts against Unknown product
+-- Use: Identify equipment needing edge configuration fixes
+-- ===============================================================
+
+CREATE OR REPLACE VIEW mes_core.vw_dq_assets_with_unknown_products AS
+SELECT
+    cl.asset_id,
+    ad.asset_name,
+    at.asset_type_name,
+    ad.tag_path,
+    COUNT(*) AS unknown_count_events,
+    SUM(cl.quantity) AS unknown_quantity_total,
+    MIN(cl.logged_at) AS first_unknown_at,
+    MAX(cl.logged_at) AS last_unknown_at
+FROM mes_core.count_log cl
+JOIN mes_core.asset_definition ad ON ad.asset_id = cl.asset_id
+LEFT JOIN mes_core.asset_type at ON at.asset_type_id = ad.asset_type_id
+WHERE cl.product_id = 1  -- Reserved Unknown product ID
+  AND cl.removed IS DISTINCT FROM TRUE
+  AND ad.removed IS DISTINCT FROM TRUE
+GROUP BY
+    cl.asset_id,
+    ad.asset_name,
+    at.asset_type_name,
+    ad.tag_path
+ORDER BY unknown_count_events DESC;
+
+COMMENT ON VIEW mes_core.vw_dq_assets_with_unknown_products IS 'Data Quality: Assets that have logged counts against Unknown product. Use tag_path to identify equipment needing ProductId configuration at the edge.';

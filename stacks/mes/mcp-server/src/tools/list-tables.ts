@@ -12,9 +12,7 @@ export const listTablesToolSchema = z.object({
   schema: z
     .string()
     .optional()
-    .describe(
-      'Optional schema name to filter (e.g., "mes_core", "mes_audit", "mes_custom")'
-    ),
+    .describe('Optional schema name to filter'),
 });
 
 export type ListTablesToolInput = z.infer<typeof listTablesToolSchema>;
@@ -28,8 +26,7 @@ export function getListTablesToolDefinition() {
       properties: {
         schema: {
           type: 'string',
-          description:
-            'Optional schema name to filter (e.g., "mes_core", "mes_audit", "mes_custom")',
+          description: 'Optional schema name to filter',
         },
       },
       required: [],

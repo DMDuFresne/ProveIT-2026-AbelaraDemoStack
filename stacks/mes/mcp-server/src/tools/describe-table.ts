@@ -5,20 +5,22 @@
 import { z } from 'zod';
 import { generateTableDescription } from '../descriptions/generator.js';
 import { getDescribeTableToolDescription } from '../descriptions/generator.js';
+import { getDefaultSchema } from '../config.js';
 
 export const describeTableToolName = 'describe_table';
 
 export const describeTableToolSchema = z.object({
   schema: z
     .string()
-    .default('mes_core')
-    .describe('Schema name (default: mes_core)'),
+    .optional()
+    .describe('Schema name (uses configured default if not specified)'),
   table: z.string().min(1).describe('Table or view name'),
 });
 
 export type DescribeTableToolInput = z.infer<typeof describeTableToolSchema>;
 
 export function getDescribeTableToolDefinition() {
+  const defaultSchema = getDefaultSchema();
   return {
     name: describeTableToolName,
     description: getDescribeTableToolDescription(),
@@ -27,8 +29,8 @@ export function getDescribeTableToolDefinition() {
       properties: {
         schema: {
           type: 'string',
-          description: 'Schema name (default: mes_core)',
-          default: 'mes_core',
+          description: `Schema name (default: ${defaultSchema})`,
+          default: defaultSchema,
         },
         table: {
           type: 'string',
@@ -44,7 +46,7 @@ export async function executeDescribeTableTool(
   input: DescribeTableToolInput
 ): Promise<{ content: Array<{ type: 'text'; text: string }> }> {
   try {
-    const schemaName = input.schema || 'mes_core';
+    const schemaName = input.schema || getDefaultSchema();
     const description = await generateTableDescription(schemaName, input.table);
 
     return {

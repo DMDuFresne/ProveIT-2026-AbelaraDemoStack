@@ -5,20 +5,22 @@
 import { z } from 'zod';
 import { query, rawQuery } from '../database/client.js';
 import { getTable } from '../database/schema-loader.js';
+import { getDefaultSchema } from '../config.js';
 
 export const getTableStatsToolName = 'get_table_stats';
 
 export const getTableStatsToolSchema = z.object({
   schema: z
     .string()
-    .default('mes_core')
-    .describe('Schema name (default: mes_core)'),
+    .optional()
+    .describe('Schema name (uses configured default if not specified)'),
   table: z.string().min(1).describe('Table or view name'),
 });
 
 export type GetTableStatsToolInput = z.infer<typeof getTableStatsToolSchema>;
 
 export function getGetTableStatsToolDefinition() {
+  const defaultSchema = getDefaultSchema();
   return {
     name: getTableStatsToolName,
     description: `Get statistics about a table including row count and column statistics.
@@ -38,8 +40,8 @@ Note: Statistics are calculated on current data and may take time for large tabl
       properties: {
         schema: {
           type: 'string',
-          description: 'Schema name (default: mes_core)',
-          default: 'mes_core',
+          description: `Schema name (default: ${defaultSchema})`,
+          default: defaultSchema,
         },
         table: {
           type: 'string',
@@ -55,7 +57,7 @@ export async function executeGetTableStatsTool(
   input: GetTableStatsToolInput
 ): Promise<{ content: Array<{ type: 'text'; text: string }> }> {
   try {
-    const schemaName = input.schema || 'mes_core';
+    const schemaName = input.schema || getDefaultSchema();
 
     // Verify table exists
     const tableInfo = await getTable(schemaName, input.table);

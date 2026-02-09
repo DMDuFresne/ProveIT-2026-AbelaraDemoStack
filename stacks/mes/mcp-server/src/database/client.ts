@@ -42,15 +42,21 @@ export async function closePool(): Promise<void> {
 }
 
 /**
- * Check if a SQL statement contains blocked keywords
+ * Check if a SQL statement contains blocked keywords.
+ * Strips string literals and comments first so that values like
+ * "WHERE info LIKE '%DELETE%'" don't trigger false positives.
  */
 export function containsBlockedKeywords(sql: string): string | null {
-  const normalizedSql = sql.toUpperCase();
+  // Neutralize string contents, line comments, and block comments
+  const stripped = sql
+    .replace(/'[^']*'/g, "''")           // Neutralize string literal contents
+    .replace(/--[^\n]*/g, '')            // Remove line comments
+    .replace(/\/\*[\s\S]*?\*\//g, '');   // Remove block comments
 
   for (const keyword of BLOCKED_KEYWORDS) {
     // Match keyword as a whole word (not part of another word)
     const regex = new RegExp(`\\b${keyword}\\b`, 'i');
-    if (regex.test(normalizedSql)) {
+    if (regex.test(stripped)) {
       return keyword;
     }
   }

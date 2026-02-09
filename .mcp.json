@@ -2,11 +2,7 @@
   "mcpServers": {
     "mes-postgres": {
       "type": "http",
-      "url": "http://localhost:48100/mcp"
-    },
-    "mes-postgres-cloud": {
-      "type": "sse",
-      "url": "https://mes-database.mcp.abelara.cloud/sse"
+      "url": "https://mes.mcp.abelara.cloud/mcp"
     },
     "wms-fuuz": {
       "type": "http",
@@ -24,3 +20,4 @@
     }
   }
 }
+

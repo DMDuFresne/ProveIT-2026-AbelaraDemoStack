@@ -4,6 +4,7 @@
 
 import { z } from 'zod';
 import { getSchemaMetadata, getTable } from '../database/schema-loader.js';
+import { getDefaultSchema } from '../config.js';
 
 export const getRelationshipsToolName = 'get_relationships';
 
@@ -14,8 +15,8 @@ export const getRelationshipsToolSchema = z.object({
     .describe('Specific table name (optional - if omitted, shows all relationships)'),
   schema: z
     .string()
-    .default('mes_core')
-    .describe('Schema name (default: mes_core)'),
+    .optional()
+    .describe('Schema name (uses configured default if not specified)'),
   format: z
     .enum(['text', 'mermaid'])
     .default('text')
@@ -25,6 +26,7 @@ export const getRelationshipsToolSchema = z.object({
 export type GetRelationshipsToolInput = z.infer<typeof getRelationshipsToolSchema>;
 
 export function getGetRelationshipsToolDefinition() {
+  const defaultSchema = getDefaultSchema();
   return {
     name: getRelationshipsToolName,
     description: `Show foreign key relationships between tables.
@@ -47,8 +49,8 @@ Useful for understanding how tables connect and planning JOINs.`,
         },
         schema: {
           type: 'string',
-          description: 'Schema name (default: mes_core)',
-          default: 'mes_core',
+          description: `Schema name (default: ${defaultSchema})`,
+          default: defaultSchema,
         },
         format: {
           type: 'string',
@@ -75,7 +77,7 @@ export async function executeGetRelationshipsTool(
   input: GetRelationshipsToolInput
 ): Promise<{ content: Array<{ type: 'text'; text: string }> }> {
   try {
-    const schemaName = input.schema || 'mes_core';
+    const schemaName = input.schema || getDefaultSchema();
     const format = input.format || 'text';
     const metadata = await getSchemaMetadata();
 

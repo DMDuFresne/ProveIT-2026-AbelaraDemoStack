@@ -71,7 +71,6 @@ services:
     volumes:
       - proveit-mes-timescaledb-data:/var/lib/postgresql/data
       - ./config/database/creation:/docker-entrypoint-initdb.d:ro
-      - ./config/database/seed:/docker-entrypoint-seed.d:ro
     ports:
       - "${MES_TIMESCALE_PORT:-5433}:5432"
     networks:
@@ -246,7 +245,7 @@ services:
         condition: service_healthy
       mes-ignition-frontend-01:
         condition: service_healthy
-      mes-mcp-server:
+      mes-mcp-postgres:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://127.0.0.1/nginx-health || exit 1"]
@@ -259,34 +258,62 @@ services:
   # Cloudflare Tunnel - External Access
   # ---------------------------------------------------------------------------
 
-  # mes-cloudflared:
-  #   <<: *defaults
-  #   image: cloudflare/cloudflared:latest
-  #   container_name: proveit-mes-cloudflared
-  #   hostname: mes-cloudflared
-  #   restart: unless-stopped
-  #   command: tunnel --no-autoupdate run --token ${MES_CLOUDFLARE_TUNNEL_TOKEN}
-  #   networks:
-  #     - routing-network
-  #   depends_on:
-  #     mes-nginx:
-  #       condition: service_healthy
-  #   logging:
-  #     driver: json-file
-  #     options:
-  #       max-size: 10m
-  #       max-file: "3"
+  mes-cloudflared:
+    <<: *defaults
+    image: cloudflare/cloudflared:latest
+    container_name: proveit-mes-cloudflared
+    hostname: mes-cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${MES_CLOUDFLARE_TUNNEL_TOKEN}
+    networks:
+      - routing-network
+    depends_on:
+      mes-nginx:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
 
   # ---------------------------------------------------------------------------
-  # MES MCP Server - Custom MCP Server with Streamable HTTP + OAuth
+  # MES MCP Postgres Server - Supergateway wrapping official postgres MCP
   # ---------------------------------------------------------------------------
-  # Custom MCP server built from ./mcp-server/ that provides:
-  # - Streamable HTTP transport (modern MCP standard)
-  # - Optional OAuth authentication (--oauth flag for Claude Desktop)
-  # - Rich schema documentation in tool descriptions
-  # - Read-only query execution with defense-in-depth security
-  # - Table listing and description tools
-  # - Schema overview as structured JSON
+  # See: https://github.com/supercorp-ai/supergateway
+  # Converts stdio-based MCP server to SSE for remote access
+
+  mes-mcp-postgres:
+    <<: *defaults
+    image: supercorp/supergateway:${SUPERGATEWAY_VERSION:-latest}
+    container_name: proveit-mes-mcp-postgres
+    hostname: mes-mcp-postgres
+    command:
+      - --outputTransport
+      - sse
+      - --host
+      - "0.0.0.0"
+      - --port
+      - "8000"
+      - --stdio
+      - "npx -y @modelcontextprotocol/server-postgres postgresql://mcp_readonly:${MES_MCP_READONLY_PASSWORD:-mcp_readonly_password}@mes-pgbouncer:5432/proveit-mes"
+    ports:
+      - "${MES_POSTGRES_MCP_PORT:-48100}:8000"
+    networks:
+      - operations-network
+    depends_on:
+      mes-pgbouncer:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8000/sse || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
 
   mes-mcp-server:
     <<: *defaults
@@ -303,17 +330,23 @@ services:
       DATABASE_URL: postgresql://mcp_readonly:${MES_MCP_READONLY_PASSWORD:-mcp_readonly_password}@mes-pgbouncer:5432/proveit-mes
       MCP_PORT: "3000"
       # External URL for OAuth metadata (must match what clients use to connect)
-      EXTERNAL_BASE_URL: http://localhost:${MES_MCP_PORT:-48100}
+      # Option 1: Set MES_MCP_EXTERNAL_URL for full control (e.g., https://mes-mcp.example.com)
+      # Option 2: Set MES_MCP_EXTERNAL_HOST for simple IP/hostname with port
+      EXTERNAL_BASE_URL: ${MES_MCP_EXTERNAL_URL:-http://${MES_MCP_EXTERNAL_HOST:-localhost}:${MES_MCP_PORT:-48100}}
       # OAuth password - if set, users must enter this to authorize (leave empty to auto-approve)
       MCP_AUTH_PASSWORD: ${MES_MCP_AUTH_PASSWORD:-}
       # Rate limiting: max failed attempts before lockout (default: 5)
       MCP_RATE_LIMIT_ATTEMPTS: ${MES_MCP_RATE_LIMIT_ATTEMPTS:-5}
       # Rate limiting: lockout duration in ms (default: 900000 = 15 minutes)
       MCP_RATE_LIMIT_WINDOW_MS: ${MES_MCP_RATE_LIMIT_WINDOW_MS:-900000}
-      SCHEMA_REFRESH_INTERVAL_MS: ${MES_MCP_SCHEMA_REFRESH_MS:-3600000}
+      # Schema and query configuration
+      SCHEMA_REFRESH_INTERVAL_MS: ${MES_MCP_SCHEMA_REFRESH_MS:-300000}
       QUERY_TIMEOUT_MS: ${MES_MCP_QUERY_TIMEOUT_MS:-30000}
       MAX_ROWS: ${MES_MCP_MAX_ROWS:-1000}
+      # MES-specific schema configuration
       EXPOSED_SCHEMAS: mes_core,mes_audit,mes_custom
+      # Domain context file for MES-specific documentation
+      DOMAIN_CONTEXT_FILE: /app/mes-context.md
     ports:
       - "${MES_MCP_PORT:-48100}:3000"
     networks:
@@ -327,11 +360,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
 
 # =============================================================================
 # VOLUMES

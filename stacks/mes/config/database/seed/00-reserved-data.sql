@@ -70,8 +70,8 @@ VALUES (
     'Reserved: Used when product information is not available from the edge. Counts logged against this product indicate missing ProductId from equipment. Investigate edge data quality.',
     1,  -- References Unknown product family
     'ea',
-    NULL,
-    NULL,  -- No ideal cycle time - cannot calculate OEE Performance
+    0,      -- Explicit zero tolerance for sentinel product
+    NULL,   -- No ideal cycle time - cannot calculate OEE Performance
     'system',
     NOW(),
     'system',

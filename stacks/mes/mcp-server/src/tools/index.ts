@@ -80,6 +80,13 @@ import {
   executeValidateQueryTool,
 } from './validate-query.js';
 
+import {
+  refreshSchemaToolName,
+  refreshSchemaToolSchema,
+  getRefreshSchemaToolDefinition,
+  executeRefreshSchemaTool,
+} from './refresh-schema.js';
+
 // Re-export everything
 export {
   queryToolName,
@@ -126,6 +133,10 @@ export {
   validateQueryToolSchema,
   getValidateQueryToolDefinition,
   executeValidateQueryTool,
+  refreshSchemaToolName,
+  refreshSchemaToolSchema,
+  getRefreshSchemaToolDefinition,
+  executeRefreshSchemaTool,
 };
 
 /**
@@ -143,6 +154,7 @@ export function getAllToolDefinitions() {
     getListFunctionsToolDefinition(),
     getDescribeTableToolDefinition(),
     getSchemaOverviewToolDefinition(),
+    getRefreshSchemaToolDefinition(),
 
     // Data exploration tools
     getGetSampleDataToolDefinition(),
@@ -166,6 +178,7 @@ export const toolExecutors = {
   list_functions: executeListFunctionsTool,
   describe_table: executeDescribeTableTool,
   schema_overview: executeSchemaOverviewTool,
+  refresh_schema: executeRefreshSchemaTool,
 
   // Data exploration tools
   get_sample_data: executeGetSampleDataTool,

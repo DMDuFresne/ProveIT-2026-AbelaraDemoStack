@@ -1,23 +1,51 @@
 /**
- * Configuration module for the MES MCP Server
+ * Configuration module for the PostgreSQL MCP Server
  * Parses and validates environment variables
  */
 
 import { z } from 'zod';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 
 const configSchema = z.object({
   databaseUrl: z.string().url().describe('PostgreSQL connection URL'),
-  schemaRefreshIntervalMs: z.number().int().positive().default(3600000),
+  schemaRefreshIntervalMs: z.number().int().positive().default(300000), // 5 minutes
   queryTimeoutMs: z.number().int().positive().default(30000),
   maxRows: z.number().int().positive().default(1000),
-  exposedSchemas: z.array(z.string()).default(['mes_core', 'mes_audit', 'mes_custom']),
+  exposedSchemas: z.array(z.string()).default(['public']),
+  defaultSchema: z.string().default('public').describe('Default schema for tools when not specified'),
+  domainContext: z.string().optional().describe('Inline domain context text'),
+  domainContextFile: z.string().optional().describe('Path to domain context markdown file'),
 });
 
 export type Config = z.infer<typeof configSchema>;
 
 function parseExposedSchemas(value: string | undefined): string[] {
-  if (!value) return ['mes_core', 'mes_audit', 'mes_custom'];
+  if (!value) return ['public'];
   return value.split(',').map(s => s.trim()).filter(Boolean);
+}
+
+/**
+ * Load domain context from file if specified
+ */
+function loadDomainContextFile(filePath: string | undefined): string | undefined {
+  if (!filePath) return undefined;
+
+  try {
+    const resolvedPath = path.isAbsolute(filePath)
+      ? filePath
+      : path.resolve(process.cwd(), filePath);
+
+    if (fs.existsSync(resolvedPath)) {
+      return fs.readFileSync(resolvedPath, 'utf-8');
+    } else {
+      console.warn(`Domain context file not found: ${resolvedPath}`);
+      return undefined;
+    }
+  } catch (error) {
+    console.warn(`Failed to load domain context file: ${error}`);
+    return undefined;
+  }
 }
 
 export function loadConfig(): Config {
@@ -26,6 +54,14 @@ export function loadConfig(): Config {
   if (!databaseUrl) {
     throw new Error('DATABASE_URL environment variable is required');
   }
+
+  // Load domain context - prefer file over inline
+  const domainContextFromFile = loadDomainContextFile(process.env.DOMAIN_CONTEXT_FILE);
+  const domainContext = domainContextFromFile || process.env.DOMAIN_CONTEXT;
+
+  // Default schema is the first exposed schema, or 'public' if not specified
+  const exposedSchemas = parseExposedSchemas(process.env.EXPOSED_SCHEMAS);
+  const defaultSchema = process.env.DEFAULT_SCHEMA || exposedSchemas[0] || 'public';
 
   const rawConfig = {
     databaseUrl,
@@ -38,7 +74,10 @@ export function loadConfig(): Config {
     maxRows: process.env.MAX_ROWS
       ? parseInt(process.env.MAX_ROWS, 10)
       : undefined,
-    exposedSchemas: parseExposedSchemas(process.env.EXPOSED_SCHEMAS),
+    exposedSchemas,
+    defaultSchema,
+    domainContext,
+    domainContextFile: process.env.DOMAIN_CONTEXT_FILE,
   };
 
   const result = configSchema.safeParse(rawConfig);
@@ -61,4 +100,12 @@ export function getConfig(): Config {
     cachedConfig = loadConfig();
   }
   return cachedConfig;
+}
+
+/**
+ * Get the default schema name for tools
+ * Convenience function for consistent access across all tools
+ */
+export function getDefaultSchema(): string {
+  return getConfig().defaultSchema;
 }

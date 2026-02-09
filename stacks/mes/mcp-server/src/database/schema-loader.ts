@@ -1,6 +1,7 @@
 /**
  * Schema introspection module
- * Queries PostgreSQL catalog to discover tables, columns, and functions
+ * Queries PostgreSQL catalog to discover tables, columns, functions,
+ * and database/schema-level comments for self-documentation
  */
 
 import { rawQuery } from './client.js';
@@ -11,9 +12,11 @@ import {
   FunctionInfo,
   FunctionParameter,
   SchemaMetadata,
+  DatabaseContext,
 } from '../types/index.js';
 
 let cachedSchema: SchemaMetadata | null = null;
+let cachedDatabaseContext: DatabaseContext | null = null;
 let lastRefreshTime: number = 0;
 
 /**
@@ -62,32 +65,38 @@ async function loadTablesAndViews(): Promise<{ tables: TableInfo[]; views: Table
     FROM information_schema.columns c
     LEFT JOIN (
       SELECT
-        kcu.table_schema,
-        kcu.table_name,
-        kcu.column_name
-      FROM information_schema.table_constraints tc
-      JOIN information_schema.key_column_usage kcu
-        ON tc.constraint_name = kcu.constraint_name
-        AND tc.table_schema = kcu.table_schema
-      WHERE tc.constraint_type = 'PRIMARY KEY'
+        n.nspname AS table_schema,
+        cl.relname AS table_name,
+        a.attname AS column_name
+      FROM pg_constraint con
+      JOIN pg_class cl ON con.conrelid = cl.oid
+      JOIN pg_namespace n ON cl.relnamespace = n.oid
+      JOIN pg_attribute a ON a.attrelid = con.conrelid
+        AND a.attnum = ANY(con.conkey)
+      WHERE con.contype = 'p'
     ) pk ON c.table_schema = pk.table_schema
         AND c.table_name = pk.table_name
         AND c.column_name = pk.column_name
     LEFT JOIN (
       SELECT
-        kcu.table_schema,
-        kcu.table_name,
-        kcu.column_name,
-        ccu.table_schema as foreign_table_schema,
-        ccu.table_name as foreign_table_name,
-        ccu.column_name as foreign_column_name
-      FROM information_schema.table_constraints tc
-      JOIN information_schema.key_column_usage kcu
-        ON tc.constraint_name = kcu.constraint_name
-        AND tc.table_schema = kcu.table_schema
-      JOIN information_schema.constraint_column_usage ccu
-        ON tc.constraint_name = ccu.constraint_name
-      WHERE tc.constraint_type = 'FOREIGN KEY'
+        n.nspname AS table_schema,
+        cl.relname AS table_name,
+        a.attname AS column_name,
+        fn.nspname AS foreign_table_schema,
+        fcl.relname AS foreign_table_name,
+        fa.attname AS foreign_column_name
+      FROM pg_constraint con
+      JOIN pg_class cl ON con.conrelid = cl.oid
+      JOIN pg_namespace n ON cl.relnamespace = n.oid
+      JOIN pg_class fcl ON con.confrelid = fcl.oid
+      JOIN pg_namespace fn ON fcl.relnamespace = fn.oid
+      CROSS JOIN LATERAL unnest(con.conkey, con.confkey)
+        WITH ORDINALITY AS cols(conkey_col, confkey_col, ord)
+      JOIN pg_attribute a ON a.attrelid = con.conrelid
+        AND a.attnum = cols.conkey_col
+      JOIN pg_attribute fa ON fa.attrelid = con.confrelid
+        AND fa.attnum = cols.confkey_col
+      WHERE con.contype = 'f'
     ) fk ON c.table_schema = fk.table_schema
         AND c.table_name = fk.table_name
         AND c.column_name = fk.column_name
@@ -304,5 +313,102 @@ export async function getTable(
  */
 export function clearSchemaCache(): void {
   cachedSchema = null;
+  cachedDatabaseContext = null;
   lastRefreshTime = 0;
+}
+
+/**
+ * Load database-level and schema-level comments for self-documentation
+ */
+async function loadDatabaseContext(): Promise<DatabaseContext> {
+  const config = getConfig();
+  const schemas = config.exposedSchemas;
+  const schemaPlaceholders = schemas.map((_, i) => `$${i + 1}`).join(', ');
+
+  // Query database-level comment
+  const dbCommentQuery = `
+    SELECT
+      current_database() as db_name,
+      pg_catalog.shobj_description(oid, 'pg_database') as db_comment
+    FROM pg_database
+    WHERE datname = current_database()
+  `;
+
+  const dbResult = await rawQuery<{
+    db_name: string;
+    db_comment: string | null;
+  }>(dbCommentQuery, []);
+
+  // Query schema-level comments
+  const schemaCommentQuery = `
+    SELECT
+      nspname as schema_name,
+      obj_description(oid, 'pg_namespace') as schema_comment
+    FROM pg_namespace
+    WHERE nspname IN (${schemaPlaceholders})
+  `;
+
+  const schemaResult = await rawQuery<{
+    schema_name: string;
+    schema_comment: string | null;
+  }>(schemaCommentQuery, schemas);
+
+  // Build schema comments map
+  const schemaComments: Record<string, string> = {};
+  for (const row of schemaResult.rows) {
+    if (row.schema_comment) {
+      schemaComments[row.schema_name] = row.schema_comment;
+    }
+  }
+
+  return {
+    databaseName: dbResult.rows[0]?.db_name || 'unknown',
+    databaseComment: dbResult.rows[0]?.db_comment || null,
+    schemaComments,
+  };
+}
+
+/**
+ * Get database context with caching
+ */
+export async function getDatabaseContext(forceRefresh = false): Promise<DatabaseContext> {
+  const config = getConfig();
+  const now = Date.now();
+
+  if (
+    forceRefresh ||
+    !cachedDatabaseContext ||
+    now - lastRefreshTime > config.schemaRefreshIntervalMs
+  ) {
+    cachedDatabaseContext = await loadDatabaseContext();
+  }
+
+  return cachedDatabaseContext;
+}
+
+/**
+ * Force refresh of all cached metadata
+ * Returns a summary of what was loaded
+ */
+export async function forceRefreshSchema(): Promise<{
+  tables: number;
+  views: number;
+  functions: number;
+  schemasWithComments: number;
+  hasDatabaseComment: boolean;
+}> {
+  clearSchemaCache();
+
+  const [schema, context] = await Promise.all([
+    getSchemaMetadata(true),
+    getDatabaseContext(true),
+  ]);
+
+  return {
+    tables: schema.tables.length,
+    views: schema.views.length,
+    functions: schema.functions.length,
+    schemasWithComments: Object.keys(context.schemaComments).length,
+    hasDatabaseComment: !!context.databaseComment,
+  };
 }

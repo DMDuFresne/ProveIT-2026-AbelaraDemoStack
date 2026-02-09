@@ -5,14 +5,15 @@
 import { z } from 'zod';
 import { query } from '../database/client.js';
 import { getTable } from '../database/schema-loader.js';
+import { getDefaultSchema } from '../config.js';
 
 export const getSampleDataToolName = 'get_sample_data';
 
 export const getSampleDataToolSchema = z.object({
   schema: z
     .string()
-    .default('mes_core')
-    .describe('Schema name (default: mes_core)'),
+    .optional()
+    .describe('Schema name (uses configured default if not specified)'),
   table: z.string().min(1).describe('Table or view name'),
   limit: z
     .number()
@@ -26,6 +27,7 @@ export const getSampleDataToolSchema = z.object({
 export type GetSampleDataToolInput = z.infer<typeof getSampleDataToolSchema>;
 
 export function getGetSampleDataToolDefinition() {
+  const defaultSchema = getDefaultSchema();
   return {
     name: getSampleDataToolName,
     description: `Get sample rows from a table or view to understand actual data patterns.
@@ -35,15 +37,15 @@ Returns a small set of rows (default 5, max 20) to help understand:
 - Column content patterns
 - Typical record structures
 
-For time-series tables (logs), returns most recent rows.
-For master data tables, returns a random sample.`,
+For tables with timestamp columns (logged_at, created_at), returns most recent rows.
+For other tables, returns a random sample.`,
     inputSchema: {
       type: 'object' as const,
       properties: {
         schema: {
           type: 'string',
-          description: 'Schema name (default: mes_core)',
-          default: 'mes_core',
+          description: `Schema name (default: ${defaultSchema})`,
+          default: defaultSchema,
         },
         table: {
           type: 'string',
@@ -64,7 +66,7 @@ export async function executeGetSampleDataTool(
   input: GetSampleDataToolInput
 ): Promise<{ content: Array<{ type: 'text'; text: string }> }> {
   try {
-    const schemaName = input.schema || 'mes_core';
+    const schemaName = input.schema || getDefaultSchema();
     const limit = input.limit || 5;
 
     // Verify table exists

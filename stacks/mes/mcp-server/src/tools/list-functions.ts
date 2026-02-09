@@ -13,9 +13,7 @@ export const listFunctionsToolSchema = z.object({
   schema: z
     .string()
     .optional()
-    .describe(
-      'Optional schema name to filter (e.g., "mes_core", "mes_audit", "mes_custom")'
-    ),
+    .describe('Optional schema name to filter'),
 });
 
 export type ListFunctionsToolInput = z.infer<typeof listFunctionsToolSchema>;
@@ -23,12 +21,12 @@ export type ListFunctionsToolInput = z.infer<typeof listFunctionsToolSchema>;
 export function getListFunctionsToolDefinition() {
   return {
     name: listFunctionsToolName,
-    description: `List all functions in the MES database with their parameters and descriptions.
+    description: `List all functions in the database with their parameters and descriptions.
 
 Functions provide useful operations like:
-- Asset hierarchy traversal (fn_get_asset_tree, fn_search_asset_ancestors, fn_search_asset_descendants)
-- Data validation (fn_assets_without_state)
-- Insert wrappers for log tables (fn_insert_state_log, fn_insert_production_log, etc.)
+- Data transformation and validation
+- Aggregate calculations
+- Business logic encapsulation
 
 Optionally filter by schema name. Returns function signatures with parameter types and descriptions.`,
     inputSchema: {
@@ -36,8 +34,7 @@ Optionally filter by schema name. Returns function signatures with parameter typ
       properties: {
         schema: {
           type: 'string',
-          description:
-            'Optional schema name to filter (e.g., "mes_core", "mes_audit", "mes_custom")',
+          description: 'Optional schema name to filter',
         },
       },
       required: [],

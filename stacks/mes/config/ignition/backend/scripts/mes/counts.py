@@ -513,7 +513,7 @@ def getYield(asset, hours=24):
     result = db.queryOne(
         """SELECT
                COALESCE(SUM(CASE WHEN count_type_id = ? THEN quantity ELSE 0 END), 0) AS good_count,
-               COALESCE(SUM(quantity), 0) AS total_count
+               COALESCE(SUM(CASE WHEN count_type_name IN ('GoodCount','ScrapCount','RejectCount') THEN quantity ELSE 0 END), 0) AS total_count
            FROM mes_core.count_log
            WHERE removed IS DISTINCT FROM TRUE
              AND asset_id = ?

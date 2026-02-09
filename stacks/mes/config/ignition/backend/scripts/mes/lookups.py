@@ -263,7 +263,7 @@ def getCountTypes(includeRemoved=False):
 
     Example:
         countTypes = lookups.getCountTypes()
-        goodType = next((ct for ct in countTypes if ct['count_type_name'] == 'Good'), None)
+        goodType = next((ct for ct in countTypes if ct['count_type_name'] == 'GoodCount'), None)
     """
     sql = """
         SELECT count_type_id, count_type_name, count_type_description, count_type_unit
@@ -288,7 +288,7 @@ def getGoodCountTypeId():
     """
     countTypes = getCountTypes()
     for ct in countTypes:
-        if ct['count_type_name'].lower() == 'good':
+        if ct['count_type_name'].lower() == 'goodcount':
             return ct['count_type_id']
     return None
 
@@ -305,7 +305,7 @@ def getScrapCountTypeId():
     """
     countTypes = getCountTypes()
     for ct in countTypes:
-        if ct['count_type_name'].lower() == 'scrap':
+        if ct['count_type_name'].lower() == 'scrapcount':
             return ct['count_type_id']
     return None
 

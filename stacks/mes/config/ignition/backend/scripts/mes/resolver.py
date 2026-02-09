@@ -344,7 +344,7 @@ def resolveCountType(identifier):
     Args:
         identifier: Can be:
             - int/long: Count type ID
-            - str: Count type name (e.g., "Good", "Scrap", "Rework")
+            - str: Count type name (e.g., "GoodCount", "ScrapCount", "RejectCount")
 
     Returns:
         Dictionary with count type record

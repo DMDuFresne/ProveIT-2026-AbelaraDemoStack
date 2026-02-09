@@ -504,7 +504,7 @@ def getRunYield(productionLogId):
         productionLogId: The production_log_id
 
     Returns:
-        Dictionary with: good_quantity, total_quantity, yield_percent
+        Dictionary with: good_quantity, produced_quantity, yield_percent
         or None if not found
 
     Example:
@@ -514,7 +514,7 @@ def getRunYield(productionLogId):
     """
     return db.queryOne(
         """SELECT production_log_id, asset_id, asset_name, product_id, product_name,
-                  good_quantity, total_quantity, yield_percent
+                  good_quantity, produced_quantity, yield_percent
            FROM mes_core.vw_production_yield
            WHERE production_log_id = ?""",
         [productionLogId]
@@ -529,7 +529,7 @@ def getRunThroughput(productionLogId):
         productionLogId: The production_log_id
 
     Returns:
-        Dictionary with: run_duration_seconds, total_count, actual_rate,
+        Dictionary with: run_duration_seconds, good_count, actual_rate,
         ideal_rate, performance_percent
         or None if not found
 
@@ -541,7 +541,7 @@ def getRunThroughput(productionLogId):
     return db.queryOne(
         """SELECT production_log_id, asset_id, asset_name, product_id, product_name,
                   ideal_cycle_time, start_ts, end_ts, run_duration_seconds,
-                  total_count, actual_rate, ideal_rate, performance_percent
+                  good_count, actual_rate, ideal_rate, performance_percent
            FROM mes_core.vw_production_throughput_rate
            WHERE production_log_id = ?""",
         [productionLogId]

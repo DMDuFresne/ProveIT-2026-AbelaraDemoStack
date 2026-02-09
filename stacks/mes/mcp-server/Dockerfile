@@ -49,6 +49,9 @@ COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
 # Copy package.json for version info
 COPY --from=builder --chown=nodejs:nodejs /app/package.json ./
 
+# Copy domain context file (optional, can be overridden via volume mount)
+COPY --chown=nodejs:nodejs mes-context.md ./
+
 # Switch to non-root user
 USER nodejs
 
@@ -56,10 +59,12 @@ USER nodejs
 ENV NODE_ENV=production
 ENV DATABASE_URL=""
 ENV MCP_PORT=3000
-ENV SCHEMA_REFRESH_INTERVAL_MS=3600000
+ENV SCHEMA_REFRESH_INTERVAL_MS=300000
 ENV QUERY_TIMEOUT_MS=30000
 ENV MAX_ROWS=1000
-ENV EXPOSED_SCHEMAS=mes_core,mes_audit,mes_custom
+# Generic defaults - override for domain-specific deployments
+ENV EXPOSED_SCHEMAS=public
+ENV DOMAIN_CONTEXT_FILE=""
 
 # Expose HTTP port
 EXPOSE 3000

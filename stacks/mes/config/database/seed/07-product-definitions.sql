@@ -23,47 +23,52 @@ SELECT
 FROM (VALUES
     -- ========================================================================
     -- Mix Products (raw materials batched in vats)
+    -- tolerance: 2.5% (batch mixing variation allowance)
     -- ========================================================================
-    ('Cola Mix',           'Base syrup/mix for Cola products',    'Mix',    'batch', NULL::numeric, NULL::numeric),
-    ('Orange Soda Mix',    'Base syrup/mix for Orange products',  'Mix',    'batch', NULL, NULL),
+    ('Cola Mix',           'Base syrup/mix for Cola products',    'Mix',    'batch', 2.5::numeric, 0.19::numeric),
+    ('Orange Soda Mix',    'Base syrup/mix for Orange products',  'Mix',    'batch', 2.5, 0.19),
 
     -- ========================================================================
     -- Bottle Products (single filled units)
+    -- tolerance: 1.5% (tighter fill-volume control)
+    -- ideal_cycle_time = seconds per unit at the asset level (~5.3 units/sec)
     -- ========================================================================
-    ('Cola Soda 0.5L',     '0.5L filled Cola bottle',             'Bottle', 'ea',    NULL, 2.5),
-    ('Orange Soda 0.5L',   '0.5L filled Orange bottle',           'Bottle', 'ea',    NULL, 2.5),
+    ('Cola Soda 0.5L',     '0.5L filled Cola bottle',             'Bottle', 'ea',    1.5, 0.19),
+    ('Orange Soda 0.5L',   '0.5L filled Orange bottle',           'Bottle', 'ea',    1.5, 0.19),
 
     -- ========================================================================
     -- Pack Products - Cola Standard (secondary packaging)
+    -- tolerance: 2.0% (packaging tolerance)
     -- Note: "Standard" label variants from Pilot map to these base products.
     --       Label variant is tracked in mes_custom.item_extended_attributes
+    -- ideal_cycle_time calibrated to sim output rates per asset (~85-95% perf)
     -- ========================================================================
-    ('Cola 0.5L 4Pk',      '4-pack of 0.5L Cola bottles',         'Pack',   'pack',  NULL, 10.0),
-    ('Cola 0.5L 6Pk',      '6-pack of 0.5L Cola bottles',         'Pack',   'pack',  NULL, 15.0),
-    ('Cola 0.5L 12Pk',     '12-pack of 0.5L Cola bottles',        'Pack',   'pack',  NULL, 25.0),
-    ('Cola 0.5L 16Pk',     '16-pack of 0.5L Cola bottles',        'Pack',   'pack',  NULL, 32.0),
-    ('Cola 0.5L 20Pk',     '20-pack of 0.5L Cola bottles',        'Pack',   'pack',  NULL, 40.0),
-    ('Cola 0.5L 24Pk',     '24-pack of 0.5L Cola bottles',        'Pack',   'pack',  NULL, 45.0),
+    ('Cola 0.5L 4Pk',      '4-pack of 0.5L Cola bottles',         'Pack',   'pack',  2.0, 0.30),
+    ('Cola 0.5L 6Pk',      '6-pack of 0.5L Cola bottles',         'Pack',   'pack',  2.0, 0.28),
+    ('Cola 0.5L 12Pk',     '12-pack of 0.5L Cola bottles',        'Pack',   'pack',  2.0, 0.24),
+    ('Cola 0.5L 16Pk',     '16-pack of 0.5L Cola bottles',        'Pack',   'pack',  2.0, 0.21),
+    ('Cola 0.5L 20Pk',     '20-pack of 0.5L Cola bottles',        'Pack',   'pack',  2.0, 0.19),
+    ('Cola 0.5L 24Pk',     '24-pack of 0.5L Cola bottles',        'Pack',   'pack',  2.0, 0.18),
 
     -- ========================================================================
     -- Pack Products - Cola Seasonal (seasonal label variants)
     -- ========================================================================
-    ('Cola 0.5L 4Pk Seasonal',   '4-pack of 0.5L Cola bottles (Seasonal)',   'Pack', 'pack', NULL, 10.0),
-    ('Cola 0.5L 6Pk Seasonal',   '6-pack of 0.5L Cola bottles (Seasonal)',   'Pack', 'pack', NULL, 15.0),
-    ('Cola 0.5L 12Pk Seasonal',  '12-pack of 0.5L Cola bottles (Seasonal)',  'Pack', 'pack', NULL, 25.0),
-    ('Cola 0.5L 16Pk Seasonal',  '16-pack of 0.5L Cola bottles (Seasonal)',  'Pack', 'pack', NULL, 32.0),
-    ('Cola 0.5L 20Pk Seasonal',  '20-pack of 0.5L Cola bottles (Seasonal)',  'Pack', 'pack', NULL, 40.0),
-    ('Cola 0.5L 24Pk Seasonal',  '24-pack of 0.5L Cola bottles (Seasonal)',  'Pack', 'pack', NULL, 45.0),
+    ('Cola 0.5L 4Pk Seasonal',   '4-pack of 0.5L Cola bottles (Seasonal)',   'Pack', 'pack', 2.0, 0.30),
+    ('Cola 0.5L 6Pk Seasonal',   '6-pack of 0.5L Cola bottles (Seasonal)',   'Pack', 'pack', 2.0, 0.28),
+    ('Cola 0.5L 12Pk Seasonal',  '12-pack of 0.5L Cola bottles (Seasonal)',  'Pack', 'pack', 2.0, 0.24),
+    ('Cola 0.5L 16Pk Seasonal',  '16-pack of 0.5L Cola bottles (Seasonal)',  'Pack', 'pack', 2.0, 0.21),
+    ('Cola 0.5L 20Pk Seasonal',  '20-pack of 0.5L Cola bottles (Seasonal)',  'Pack', 'pack', 2.0, 0.19),
+    ('Cola 0.5L 24Pk Seasonal',  '24-pack of 0.5L Cola bottles (Seasonal)',  'Pack', 'pack', 2.0, 0.18),
 
     -- ========================================================================
     -- Pack Products - Orange (secondary packaging)
     -- ========================================================================
-    ('Orange 0.5L 4Pk',    '4-pack of 0.5L Orange bottles',       'Pack',   'pack',  NULL, 10.0),
-    ('Orange 0.5L 6Pk',    '6-pack of 0.5L Orange bottles',       'Pack',   'pack',  NULL, 15.0),
-    ('Orange 0.5L 12Pk',   '12-pack of 0.5L Orange bottles',      'Pack',   'pack',  NULL, 25.0),
-    ('Orange 0.5L 16Pk',   '16-pack of 0.5L Orange bottles',      'Pack',   'pack',  NULL, 32.0),
-    ('Orange 0.5L 20Pk',   '20-pack of 0.5L Orange bottles',      'Pack',   'pack',  NULL, 40.0),
-    ('Orange 0.5L 24Pk',   '24-pack of 0.5L Orange bottles',      'Pack',   'pack',  NULL, 45.0)
+    ('Orange 0.5L 4Pk',    '4-pack of 0.5L Orange bottles',       'Pack',   'pack',  2.0, 0.30),
+    ('Orange 0.5L 6Pk',    '6-pack of 0.5L Orange bottles',       'Pack',   'pack',  2.0, 0.28),
+    ('Orange 0.5L 12Pk',   '12-pack of 0.5L Orange bottles',      'Pack',   'pack',  2.0, 0.24),
+    ('Orange 0.5L 16Pk',   '16-pack of 0.5L Orange bottles',      'Pack',   'pack',  2.0, 0.21),
+    ('Orange 0.5L 20Pk',   '20-pack of 0.5L Orange bottles',      'Pack',   'pack',  2.0, 0.19),
+    ('Orange 0.5L 24Pk',   '24-pack of 0.5L Orange bottles',      'Pack',   'pack',  2.0, 0.18)
 ) AS v(product_name, product_description, family_name, unit_of_measure, tolerance, ideal_cycle_time)
 JOIN mes_core.product_family pf ON pf.product_family_name = v.family_name
 WHERE NOT EXISTS (

@@ -113,7 +113,7 @@ BEGIN
     RETURNING asset_id INTO v_plant2;
 
     INSERT INTO mes_core.asset_definition (asset_name, asset_description, asset_type_id, parent_asset_id, tag_path, created_by, created_at, updated_by, updated_at, removed)
-    VALUES ('Site 3', 'Site 3', v_type_site, v_enterprise, 'Cappy Hour Inc/Site 3', 'seed', NOW(), 'seed', NOW(), false)
+    VALUES ('Site 3', 'Riverside Distribution Center', v_type_site, v_enterprise, 'Cappy Hour Inc/Site 3', 'seed', NOW(), 'seed', NOW(), false)
     RETURNING asset_id INTO v_plant3;
 
     -- ========================================================================
@@ -128,11 +128,11 @@ BEGIN
     RETURNING asset_id INTO v_liquid_processing;
 
     INSERT INTO mes_core.asset_definition (asset_name, asset_description, asset_type_id, parent_asset_id, tag_path, created_by, created_at, updated_by, updated_at, removed)
-    VALUES ('Packaging', 'Packaging', v_type_area, v_plant1, 'Cappy Hour Inc/Site 1/Packaging', 'seed', NOW(), 'seed', NOW(), false)
+    VALUES ('Packaging', 'Labeling, case packing, and sealing', v_type_area, v_plant1, 'Cappy Hour Inc/Site 1/Packaging', 'seed', NOW(), 'seed', NOW(), false)
     RETURNING asset_id INTO v_packaging;
 
     INSERT INTO mes_core.asset_definition (asset_name, asset_description, asset_type_id, parent_asset_id, tag_path, created_by, created_at, updated_by, updated_at, removed)
-    VALUES ('Palletizing', 'Palletizing', v_type_area, v_plant1, 'Cappy Hour Inc/Site 1/Palletizing', 'seed', NOW(), 'seed', NOW(), false)
+    VALUES ('Palletizing', 'Robotic and manual pallet loading and stretch wrapping', v_type_area, v_plant1, 'Cappy Hour Inc/Site 1/Palletizing', 'seed', NOW(), 'seed', NOW(), false)
     RETURNING asset_id INTO v_palletizing;
 
     -- ========================================================================
@@ -214,65 +214,65 @@ BEGIN
     ('CapLoader', 'Capper', v_type_caploader, v_filling_line01, 'Cappy Hour Inc/Site 1/Filler Production/FillingLine01/CapLoader', 'seed', NOW(), 'seed', NOW(), false);
 
     INSERT INTO mes_core.asset_definition (asset_name, asset_description, asset_type_id, parent_asset_id, tag_path, created_by, created_at, updated_by, updated_at, removed) VALUES
-    ('Filler', 'Filler', v_type_filler, v_filling_line01, 'Cappy Hour Inc/Site 1/Filler Production/FillingLine01/Filler', 'seed', NOW(), 'seed', NOW(), false);
+    ('Filler', 'Line A 24-head rotary filler', v_type_filler, v_filling_line01, 'Cappy Hour Inc/Site 1/Filler Production/FillingLine01/Filler', 'seed', NOW(), 'seed', NOW(), false);
 
     INSERT INTO mes_core.asset_definition (asset_name, asset_description, asset_type_id, parent_asset_id, tag_path, created_by, created_at, updated_by, updated_at, removed) VALUES
-    ('Washer', 'Washer', v_type_washer, v_filling_line01, 'Cappy Hour Inc/Site 1/Filler Production/FillingLine01/Washer', 'seed', NOW(), 'seed', NOW(), false);
+    ('Washer', 'Line A bottle rinser and washer', v_type_washer, v_filling_line01, 'Cappy Hour Inc/Site 1/Filler Production/FillingLine01/Washer', 'seed', NOW(), 'seed', NOW(), false);
 
     -- Level 5: Work Centers - FillingLine02
     INSERT INTO mes_core.asset_definition (asset_name, asset_description, asset_type_id, parent_asset_id, tag_path, created_by, created_at, updated_by, updated_at, removed) VALUES
-    ('Filler', 'Filler', v_type_filler, v_filling_line02, 'Cappy Hour Inc/Site 1/Filler Production/FillingLine02/Filler', 'seed', NOW(), 'seed', NOW(), false);
+    ('Filler', 'Line B 24-head rotary filler', v_type_filler, v_filling_line02, 'Cappy Hour Inc/Site 1/Filler Production/FillingLine02/Filler', 'seed', NOW(), 'seed', NOW(), false);
 
     INSERT INTO mes_core.asset_definition (asset_name, asset_description, asset_type_id, parent_asset_id, tag_path, created_by, created_at, updated_by, updated_at, removed) VALUES
     ('CapLoader', 'Capper', v_type_caploader, v_filling_line02, 'Cappy Hour Inc/Site 1/Filler Production/FillingLine02/CapLoader', 'seed', NOW(), 'seed', NOW(), false);
 
     INSERT INTO mes_core.asset_definition (asset_name, asset_description, asset_type_id, parent_asset_id, tag_path, created_by, created_at, updated_by, updated_at, removed) VALUES
-    ('Washer', 'Washer', v_type_washer, v_filling_line02, 'Cappy Hour Inc/Site 1/Filler Production/FillingLine02/Washer', 'seed', NOW(), 'seed', NOW(), false);
+    ('Washer', 'Line B bottle rinser and washer', v_type_washer, v_filling_line02, 'Cappy Hour Inc/Site 1/Filler Production/FillingLine02/Washer', 'seed', NOW(), 'seed', NOW(), false);
 
     -- Level 5: Work Centers - FillingLine03
     INSERT INTO mes_core.asset_definition (asset_name, asset_description, asset_type_id, parent_asset_id, tag_path, created_by, created_at, updated_by, updated_at, removed) VALUES
-    ('Filler', 'Filler', v_type_filler, v_filling_line03, 'Cappy Hour Inc/Site 1/Filler Production/FillingLine03/Filler', 'seed', NOW(), 'seed', NOW(), false);
+    ('Filler', 'High capacity 48-head rotary filler', v_type_filler, v_filling_line03, 'Cappy Hour Inc/Site 1/Filler Production/FillingLine03/Filler', 'seed', NOW(), 'seed', NOW(), false);
 
     INSERT INTO mes_core.asset_definition (asset_name, asset_description, asset_type_id, parent_asset_id, tag_path, created_by, created_at, updated_by, updated_at, removed) VALUES
     ('CapLoader', 'Capper', v_type_caploader, v_filling_line03, 'Cappy Hour Inc/Site 1/Filler Production/FillingLine03/CapLoader', 'seed', NOW(), 'seed', NOW(), false);
 
     INSERT INTO mes_core.asset_definition (asset_name, asset_description, asset_type_id, parent_asset_id, tag_path, created_by, created_at, updated_by, updated_at, removed) VALUES
-    ('Washer', 'Washer', v_type_washer, v_filling_line03, 'Cappy Hour Inc/Site 1/Filler Production/FillingLine03/Washer', 'seed', NOW(), 'seed', NOW(), false);
+    ('Washer', 'High capacity bottle rinser and washer', v_type_washer, v_filling_line03, 'Cappy Hour Inc/Site 1/Filler Production/FillingLine03/Washer', 'seed', NOW(), 'seed', NOW(), false);
 
     -- ========================================================================
     -- Level 5: Work Centers - Packaging (LabelerLine01-04)
     -- ========================================================================
     -- LabelerLine01
     INSERT INTO mes_core.asset_definition (asset_name, asset_description, asset_type_id, parent_asset_id, tag_path, created_by, created_at, updated_by, updated_at, removed) VALUES
-    ('Labeler', 'Labeler', v_type_labeler, v_labeler_line01, 'Cappy Hour Inc/Site 1/Packaging/LabelerLine01/Labeler', 'seed', NOW(), 'seed', NOW(), false);
+    ('Labeler', 'Line A pressure-sensitive labeler', v_type_labeler, v_labeler_line01, 'Cappy Hour Inc/Site 1/Packaging/LabelerLine01/Labeler', 'seed', NOW(), 'seed', NOW(), false);
     INSERT INTO mes_core.asset_definition (asset_name, asset_description, asset_type_id, parent_asset_id, tag_path, created_by, created_at, updated_by, updated_at, removed) VALUES
-    ('Packager', 'Packager', v_type_packager, v_labeler_line01, 'Cappy Hour Inc/Site 1/Packaging/LabelerLine01/Packager', 'seed', NOW(), 'seed', NOW(), false);
+    ('Packager', 'Line A case packer', v_type_packager, v_labeler_line01, 'Cappy Hour Inc/Site 1/Packaging/LabelerLine01/Packager', 'seed', NOW(), 'seed', NOW(), false);
     INSERT INTO mes_core.asset_definition (asset_name, asset_description, asset_type_id, parent_asset_id, tag_path, created_by, created_at, updated_by, updated_at, removed) VALUES
-    ('Sealer', 'Sealer', v_type_sealer, v_labeler_line01, 'Cappy Hour Inc/Site 1/Packaging/LabelerLine01/Sealer', 'seed', NOW(), 'seed', NOW(), false);
+    ('Sealer', 'Line A hot-melt case sealer', v_type_sealer, v_labeler_line01, 'Cappy Hour Inc/Site 1/Packaging/LabelerLine01/Sealer', 'seed', NOW(), 'seed', NOW(), false);
 
     -- LabelerLine02
     INSERT INTO mes_core.asset_definition (asset_name, asset_description, asset_type_id, parent_asset_id, tag_path, created_by, created_at, updated_by, updated_at, removed) VALUES
-    ('Labeler', 'Labeler', v_type_labeler, v_labeler_line02, 'Cappy Hour Inc/Site 1/Packaging/LabelerLine02/Labeler', 'seed', NOW(), 'seed', NOW(), false);
+    ('Labeler', 'Line B pressure-sensitive labeler', v_type_labeler, v_labeler_line02, 'Cappy Hour Inc/Site 1/Packaging/LabelerLine02/Labeler', 'seed', NOW(), 'seed', NOW(), false);
     INSERT INTO mes_core.asset_definition (asset_name, asset_description, asset_type_id, parent_asset_id, tag_path, created_by, created_at, updated_by, updated_at, removed) VALUES
-    ('Packager', 'Packager', v_type_packager, v_labeler_line02, 'Cappy Hour Inc/Site 1/Packaging/LabelerLine02/Packager', 'seed', NOW(), 'seed', NOW(), false);
+    ('Packager', 'Line B case packer', v_type_packager, v_labeler_line02, 'Cappy Hour Inc/Site 1/Packaging/LabelerLine02/Packager', 'seed', NOW(), 'seed', NOW(), false);
     INSERT INTO mes_core.asset_definition (asset_name, asset_description, asset_type_id, parent_asset_id, tag_path, created_by, created_at, updated_by, updated_at, removed) VALUES
-    ('Sealer', 'Sealer', v_type_sealer, v_labeler_line02, 'Cappy Hour Inc/Site 1/Packaging/LabelerLine02/Sealer', 'seed', NOW(), 'seed', NOW(), false);
+    ('Sealer', 'Line B hot-melt case sealer', v_type_sealer, v_labeler_line02, 'Cappy Hour Inc/Site 1/Packaging/LabelerLine02/Sealer', 'seed', NOW(), 'seed', NOW(), false);
 
     -- LabelerLine03
     INSERT INTO mes_core.asset_definition (asset_name, asset_description, asset_type_id, parent_asset_id, tag_path, created_by, created_at, updated_by, updated_at, removed) VALUES
-    ('Labeler', 'Labeler', v_type_labeler, v_labeler_line03, 'Cappy Hour Inc/Site 1/Packaging/LabelerLine03/Labeler', 'seed', NOW(), 'seed', NOW(), false);
+    ('Labeler', 'Labeler 1 shrink-sleeve applicator', v_type_labeler, v_labeler_line03, 'Cappy Hour Inc/Site 1/Packaging/LabelerLine03/Labeler', 'seed', NOW(), 'seed', NOW(), false);
     INSERT INTO mes_core.asset_definition (asset_name, asset_description, asset_type_id, parent_asset_id, tag_path, created_by, created_at, updated_by, updated_at, removed) VALUES
-    ('Packager', 'Packager', v_type_packager, v_labeler_line03, 'Cappy Hour Inc/Site 1/Packaging/LabelerLine03/Packager', 'seed', NOW(), 'seed', NOW(), false);
+    ('Packager', 'Labeler 1 tray packer', v_type_packager, v_labeler_line03, 'Cappy Hour Inc/Site 1/Packaging/LabelerLine03/Packager', 'seed', NOW(), 'seed', NOW(), false);
     INSERT INTO mes_core.asset_definition (asset_name, asset_description, asset_type_id, parent_asset_id, tag_path, created_by, created_at, updated_by, updated_at, removed) VALUES
-    ('Sealer', 'Sealer', v_type_sealer, v_labeler_line03, 'Cappy Hour Inc/Site 1/Packaging/LabelerLine03/Sealer', 'seed', NOW(), 'seed', NOW(), false);
+    ('Sealer', 'Labeler 1 tape case sealer', v_type_sealer, v_labeler_line03, 'Cappy Hour Inc/Site 1/Packaging/LabelerLine03/Sealer', 'seed', NOW(), 'seed', NOW(), false);
 
     -- LabelerLine04
     INSERT INTO mes_core.asset_definition (asset_name, asset_description, asset_type_id, parent_asset_id, tag_path, created_by, created_at, updated_by, updated_at, removed) VALUES
-    ('Labeler', 'Labeler', v_type_labeler, v_labeler_line04, 'Cappy Hour Inc/Site 1/Packaging/LabelerLine04/Labeler', 'seed', NOW(), 'seed', NOW(), false);
+    ('Labeler', 'Labeler 2 shrink-sleeve applicator', v_type_labeler, v_labeler_line04, 'Cappy Hour Inc/Site 1/Packaging/LabelerLine04/Labeler', 'seed', NOW(), 'seed', NOW(), false);
     INSERT INTO mes_core.asset_definition (asset_name, asset_description, asset_type_id, parent_asset_id, tag_path, created_by, created_at, updated_by, updated_at, removed) VALUES
-    ('Packager', 'Packager', v_type_packager, v_labeler_line04, 'Cappy Hour Inc/Site 1/Packaging/LabelerLine04/Packager', 'seed', NOW(), 'seed', NOW(), false);
+    ('Packager', 'Labeler 2 tray packer', v_type_packager, v_labeler_line04, 'Cappy Hour Inc/Site 1/Packaging/LabelerLine04/Packager', 'seed', NOW(), 'seed', NOW(), false);
     INSERT INTO mes_core.asset_definition (asset_name, asset_description, asset_type_id, parent_asset_id, tag_path, created_by, created_at, updated_by, updated_at, removed) VALUES
-    ('Sealer', 'Sealer', v_type_sealer, v_labeler_line04, 'Cappy Hour Inc/Site 1/Packaging/LabelerLine04/Sealer', 'seed', NOW(), 'seed', NOW(), false);
+    ('Sealer', 'Labeler 2 tape case sealer', v_type_sealer, v_labeler_line04, 'Cappy Hour Inc/Site 1/Packaging/LabelerLine04/Sealer', 'seed', NOW(), 'seed', NOW(), false);
 
     -- ========================================================================
     -- Level 6: Equipment - Vats (MixRoom01)
@@ -310,9 +310,9 @@ BEGIN
     INSERT INTO mes_core.asset_definition (asset_name, asset_description, asset_type_id, parent_asset_id, tag_path, created_by, created_at, updated_by, updated_at, removed) VALUES
     ('Pallet02', 'West Pallet', v_type_palletstation, v_palletizer01, 'Cappy Hour Inc/Site 1/Palletizing/Palletizer01/Pallet02', 'seed', NOW(), 'seed', NOW(), false);
     INSERT INTO mes_core.asset_definition (asset_name, asset_description, asset_type_id, parent_asset_id, tag_path, created_by, created_at, updated_by, updated_at, removed) VALUES
-    ('Robot', 'Robot', v_type_robot, v_palletizer01, 'Cappy Hour Inc/Site 1/Palletizing/Palletizer01/Robot', 'seed', NOW(), 'seed', NOW(), false);
+    ('Robot', 'East 4-axis palletizing robot', v_type_robot, v_palletizer01, 'Cappy Hour Inc/Site 1/Palletizing/Palletizer01/Robot', 'seed', NOW(), 'seed', NOW(), false);
     INSERT INTO mes_core.asset_definition (asset_name, asset_description, asset_type_id, parent_asset_id, tag_path, created_by, created_at, updated_by, updated_at, removed) VALUES
-    ('Wrapper', 'Wrapper', v_type_wrapper, v_palletizer01, 'Cappy Hour Inc/Site 1/Palletizing/Palletizer01/Wrapper', 'seed', NOW(), 'seed', NOW(), false);
+    ('Wrapper', 'East rotary stretch wrapper', v_type_wrapper, v_palletizer01, 'Cappy Hour Inc/Site 1/Palletizing/Palletizer01/Wrapper', 'seed', NOW(), 'seed', NOW(), false);
 
     -- ========================================================================
     -- Level 6: Equipment - Palletizer02
@@ -322,9 +322,9 @@ BEGIN
     INSERT INTO mes_core.asset_definition (asset_name, asset_description, asset_type_id, parent_asset_id, tag_path, created_by, created_at, updated_by, updated_at, removed) VALUES
     ('Pallet02', 'West Pallet', v_type_palletstation, v_palletizer02, 'Cappy Hour Inc/Site 1/Palletizing/Palletizer02/Pallet02', 'seed', NOW(), 'seed', NOW(), false);
     INSERT INTO mes_core.asset_definition (asset_name, asset_description, asset_type_id, parent_asset_id, tag_path, created_by, created_at, updated_by, updated_at, removed) VALUES
-    ('Robot', 'Robot', v_type_robot, v_palletizer02, 'Cappy Hour Inc/Site 1/Palletizing/Palletizer02/Robot', 'seed', NOW(), 'seed', NOW(), false);
+    ('Robot', 'West 4-axis palletizing robot', v_type_robot, v_palletizer02, 'Cappy Hour Inc/Site 1/Palletizing/Palletizer02/Robot', 'seed', NOW(), 'seed', NOW(), false);
     INSERT INTO mes_core.asset_definition (asset_name, asset_description, asset_type_id, parent_asset_id, tag_path, created_by, created_at, updated_by, updated_at, removed) VALUES
-    ('Wrapper', 'Wrapper', v_type_wrapper, v_palletizer02, 'Cappy Hour Inc/Site 1/Palletizing/Palletizer02/Wrapper', 'seed', NOW(), 'seed', NOW(), false);
+    ('Wrapper', 'West rotary stretch wrapper', v_type_wrapper, v_palletizer02, 'Cappy Hour Inc/Site 1/Palletizing/Palletizer02/Wrapper', 'seed', NOW(), 'seed', NOW(), false);
 
     -- ========================================================================
     -- Level 6: Equipment - Manual Palletizer Workstations

@@ -211,7 +211,7 @@ def recordMeasurement(
                ?, '',
                ?, ?,
                ?, ?, ?,
-               ?
+               CAST(? AS jsonb)
            ) RETURNING *""",
         [
             assetRecord['asset_id'],

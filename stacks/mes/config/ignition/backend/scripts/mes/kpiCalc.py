@@ -482,7 +482,7 @@ def getGoodQuantity(asset, startTime=None, endTime=None, hours=24, days=None, pr
     results = _queryCountsByType(assetRecord['asset_id'], resolvedStart, resolvedEnd, productId)
 
     for row in results:
-        if row['count_type_name'] and row['count_type_name'].lower() == 'good':
+        if row['count_type_name'] and row['count_type_name'].lower() == 'goodcount':
             return row['total_quantity'] or 0
     return 0
 
@@ -505,7 +505,7 @@ def getScrapQuantity(asset, startTime=None, endTime=None, hours=24, days=None, p
     results = _queryCountsByType(assetRecord['asset_id'], resolvedStart, resolvedEnd, productId)
 
     for row in results:
-        if row['count_type_name'] and row['count_type_name'].lower() == 'scrap':
+        if row['count_type_name'] and row['count_type_name'].lower() == 'scrapcount':
             return row['total_quantity'] or 0
     return 0
 
@@ -528,7 +528,7 @@ def getRejectQuantity(asset, startTime=None, endTime=None, hours=24, days=None, 
     results = _queryCountsByType(assetRecord['asset_id'], resolvedStart, resolvedEnd, productId)
 
     for row in results:
-        if row['count_type_name'] and row['count_type_name'].lower() in ('reject', 'rejected'):
+        if row['count_type_name'] and row['count_type_name'].lower() == 'rejectcount':
             return row['total_quantity'] or 0
     return 0
 
@@ -569,7 +569,7 @@ def getInfeedQuantity(asset, startTime=None, endTime=None, hours=24, days=None, 
     results = _queryCountsByType(assetRecord['asset_id'], resolvedStart, resolvedEnd, productId)
 
     for row in results:
-        if row['count_type_name'] and row['count_type_name'].lower() == 'infeed':
+        if row['count_type_name'] and row['count_type_name'].lower() == 'infeedcount':
             return row['total_quantity'] or 0
     return 0
 
@@ -595,7 +595,7 @@ def getReworkQuantity(asset, startTime=None, endTime=None, hours=24, days=None, 
     results = _queryCountsByType(assetRecord['asset_id'], resolvedStart, resolvedEnd, productId)
 
     for row in results:
-        if row['count_type_name'] and row['count_type_name'].lower() == 'rework':
+        if row['count_type_name'] and row['count_type_name'].lower() == 'reworkcount':
             return row['total_quantity'] or 0
     return 0
 
@@ -765,7 +765,8 @@ def getActualRate(asset, startTime=None, endTime=None, hours=24, days=None, prod
     ISO 22400: Actual Rate = PQ / APT (Produced Quantity / Actual Production Time)
 
     Uses APT (Actual Production Time) as the denominator, which includes all
-    non-downtime states (Running, Idle, Blocked). This provides a more accurate
+    non-downtime states (Running, Idle). Note: Blocked is classified as downtime
+    (is_downtime=true) and is excluded from APT. This provides a more accurate
     representation of throughput efficiency per ISO 22400 compared to using
     only Running Time.
 
@@ -1447,7 +1448,7 @@ def getCIPCycleEfficiency(asset, startTime=None, endTime=None, hours=24, days=No
     assetRecord = resolveAsset(asset)
     resolvedStart, resolvedEnd = _resolveTimeRange(startTime, endTime, hours, days)
 
-    # Query CIP state durations
+    # Query CIP state durations from the timeline view (which computes start_time/end_time)
     sql = """
         SELECT
             COALESCE(SUM(
@@ -1458,13 +1459,11 @@ def getCIPCycleEfficiency(asset, startTime=None, endTime=None, hours=24, days=No
                         EXTRACT(EPOCH FROM (LEAST(sl.end_time, ?) - GREATEST(sl.start_time, ?)))
                 END
             ), 0) AS cip_seconds
-        FROM mes_core.state_log sl
-        JOIN mes_core.state_definition sd ON sd.state_id = sl.state_id
+        FROM mes_core.vw_state_timeline sl
         WHERE sl.asset_id = ?
           AND sl.start_time < ?
           AND (sl.end_time IS NULL OR sl.end_time > ?)
-          AND sl.removed IS DISTINCT FROM TRUE
-          AND LOWER(sd.state_name) LIKE '%cip%'
+          AND LOWER(sl.state_name) LIKE '%cip%'
     """
     result = db.queryOne(sql, [
         resolvedEnd, resolvedStart,
@@ -1482,16 +1481,14 @@ def getCIPCycleEfficiency(asset, startTime=None, endTime=None, hours=24, days=No
     # Target CIP time per cycle (default 30 minutes)
     targetCipSeconds = 1800
 
-    # Count CIP cycles
+    # Count CIP cycles from the timeline view
     cycleCountSql = """
         SELECT COUNT(*) AS cycle_count
-        FROM mes_core.state_log sl
-        JOIN mes_core.state_definition sd ON sd.state_id = sl.state_id
+        FROM mes_core.vw_state_timeline sl
         WHERE sl.asset_id = ?
           AND sl.start_time >= ?
           AND sl.start_time <= ?
-          AND sl.removed IS DISTINCT FROM TRUE
-          AND LOWER(sd.state_name) LIKE '%cip%'
+          AND LOWER(sl.state_name) LIKE '%cip%'
     """
     cycleResult = db.queryOne(cycleCountSql, [assetRecord['asset_id'], resolvedStart, resolvedEnd])
     cycleCount = cycleResult['cycle_count'] if cycleResult else 0
@@ -1550,8 +1547,8 @@ _KPI_CALCULATORS = {
     'Quality': lambda asset, start, end: getQualityRatio(asset, startTime=start, endTime=end),
     'MTBF': lambda asset, start, end: getMTBF(asset, startTime=start, endTime=end),
     'MTTR': lambda asset, start, end: getMTTR(asset, startTime=start, endTime=end),
-    'BottleneckIndicator': lambda asset, start, end: getBottleneckIndicator(asset, startTime=start, endTime=end),
-    'CIPCycleEfficiency': lambda asset, start, end: getCIPCycleEfficiency(asset, startTime=start, endTime=end),
-    'OverfillWaste': lambda asset, start, end: getOverfillWaste(asset, startTime=start, endTime=end),
-    'RejectRate': lambda asset, start, end: getRejectRate(asset, startTime=start, endTime=end),
+    'Bottleneck Indicator': lambda asset, start, end: getBottleneckIndicator(asset, startTime=start, endTime=end),
+    'CIP Cycle Efficiency': lambda asset, start, end: getCIPCycleEfficiency(asset, startTime=start, endTime=end),
+    'Overfill Waste': lambda asset, start, end: getOverfillWaste(asset, startTime=start, endTime=end),
+    'Reject Rate': lambda asset, start, end: getRejectRate(asset, startTime=start, endTime=end),
 }

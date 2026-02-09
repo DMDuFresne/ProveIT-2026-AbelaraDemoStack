@@ -1,5 +1,8 @@
 /**
- * MCP Server with Streamable HTTP Transport + OAuth Support
+ * PostgreSQL MCP Server with Streamable HTTP Transport + OAuth Support
+ *
+ * A generic, self-documenting PostgreSQL MCP Server that dynamically
+ * extracts context from database comments and supports optional domain configuration.
  *
  * Run modes:
  *   npm start          - No auth (local development)
@@ -16,7 +19,8 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
 
 import { testConnection, closePool } from './database/client.js';
-import { getSchemaMetadata } from './database/schema-loader.js';
+import { getSchemaMetadata, forceRefreshSchema } from './database/schema-loader.js';
+import { getConfig, getDefaultSchema } from './config.js';
 
 // Import tool executors and schemas
 import {
@@ -31,13 +35,14 @@ import {
   executeGetRelationshipsTool,
   executeGetTableStatsTool,
   executeValidateQueryTool,
+  executeRefreshSchemaTool,
 } from './tools/index.js';
 
 // Import descriptions
 import { getQueryToolDescription } from './descriptions/generator.js';
 
-const SERVER_NAME = 'proveit-mes-mcp';
-const SERVER_VERSION = '2.0.0';
+const SERVER_NAME = 'postgres-mcp';
+const SERVER_VERSION = '2.1.0';
 const MCP_PORT = parseInt(process.env.MCP_PORT || '3000', 10);
 
 // External base URL for OAuth metadata (important when running behind port mapping/proxy)
@@ -171,9 +176,9 @@ function createMcpServer(): McpServer {
   // Register list_tables tool
   server.tool(
     'list_tables',
-    'List all tables and views in the MES database with their descriptions. Optionally filter by schema name.',
+    'List all tables and views in the database with their descriptions. Optionally filter by schema name.',
     {
-      schema: z.string().optional().describe('Optional schema name to filter (e.g., mes_core, mes_audit, mes_custom)'),
+      schema: z.string().optional().describe('Optional schema name to filter'),
     },
     async (args) => {
       return executeListTablesTool({ schema: args.schema });
@@ -183,7 +188,7 @@ function createMcpServer(): McpServer {
   // Register list_functions tool
   server.tool(
     'list_functions',
-    'List all stored functions/procedures in the MES database with their parameters and descriptions.',
+    'List all stored functions/procedures in the database with their parameters and descriptions.',
     {
       schema: z.string().optional().describe('Optional schema name to filter'),
     },
@@ -193,11 +198,12 @@ function createMcpServer(): McpServer {
   );
 
   // Register describe_table tool
+  const defaultSchema = getDefaultSchema();
   server.tool(
     'describe_table',
     'Get detailed column information for a specific table or view including types, constraints, and relationships.',
     {
-      schema: z.string().default('mes_core').describe('Schema name (default: mes_core)'),
+      schema: z.string().default(defaultSchema).describe(`Schema name (default: ${defaultSchema})`),
       table: z.string().min(1).describe('Table or view name'),
     },
     async (args) => {
@@ -220,7 +226,7 @@ function createMcpServer(): McpServer {
     'get_sample_data',
     'Get sample rows from a table to understand its data patterns and actual values.',
     {
-      schema: z.string().default('mes_core').describe('Schema name (default: mes_core)'),
+      schema: z.string().default(defaultSchema).describe(`Schema name (default: ${defaultSchema})`),
       table: z.string().min(1).describe('Table or view name'),
       limit: z.number().int().min(1).max(20).default(5).describe('Number of rows to return (1-20, default: 5)'),
     },
@@ -261,7 +267,7 @@ function createMcpServer(): McpServer {
     'Show foreign key relationships between tables. Can output as text or Mermaid ER diagram.',
     {
       table: z.string().optional().describe('Specific table name (optional - if omitted, shows all relationships)'),
-      schema: z.string().default('mes_core').describe('Schema name (default: mes_core)'),
+      schema: z.string().default(defaultSchema).describe(`Schema name (default: ${defaultSchema})`),
       format: z.enum(['text', 'mermaid']).default('text').describe('Output format: text or mermaid diagram'),
     },
     async (args) => {
@@ -274,11 +280,21 @@ function createMcpServer(): McpServer {
     'get_table_stats',
     'Get statistics about a table including row count, null percentages, and distinct value counts.',
     {
-      schema: z.string().default('mes_core').describe('Schema name (default: mes_core)'),
+      schema: z.string().default(defaultSchema).describe(`Schema name (default: ${defaultSchema})`),
       table: z.string().min(1).describe('Table or view name'),
     },
     async (args) => {
       return executeGetTableStatsTool({ schema: args.schema, table: args.table });
+    }
+  );
+
+  // Register refresh_schema tool
+  server.tool(
+    'refresh_schema',
+    'Force refresh of the database schema cache. Use after DDL changes to see updates immediately.',
+    {},
+    async () => {
+      return executeRefreshSchemaTool({});
     }
   );
 
@@ -355,6 +371,36 @@ export async function startServer(): Promise<void> {
   } catch (error) {
     console.error('Warning: Failed to pre-load schema metadata:', error);
   }
+
+  // Start background schema refresh pulse
+  const config = getConfig();
+  const refreshIntervalMs = config.schemaRefreshIntervalMs;
+  let previousTableCount = 0;
+  let previousViewCount = 0;
+
+  const schemaRefreshInterval = setInterval(async () => {
+    try {
+      const oldSchema = await getSchemaMetadata();
+      previousTableCount = oldSchema.tables.length;
+      previousViewCount = oldSchema.views.length;
+
+      const summary = await forceRefreshSchema();
+
+      // Log if changes detected
+      if (summary.tables !== previousTableCount || summary.views !== previousViewCount) {
+        console.log(
+          `Schema change detected: ${summary.tables} tables (was ${previousTableCount}), ` +
+          `${summary.views} views (was ${previousViewCount})`
+        );
+      }
+    } catch (error) {
+      console.error('Background schema refresh failed:', error);
+    }
+  }, refreshIntervalMs);
+
+  // Don't let the refresh interval keep the process alive
+  schemaRefreshInterval.unref();
+  console.log(`Background schema refresh enabled (interval: ${refreshIntervalMs / 1000}s)`);
 
   // Create Express app
   const app = express();

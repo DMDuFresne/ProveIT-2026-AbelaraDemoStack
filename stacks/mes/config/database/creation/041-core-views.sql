@@ -69,21 +69,43 @@ COMMENT ON VIEW mes_core.vw_state_active IS 'Latest active state per asset, incl
 -- ===============================================================
 
 CREATE OR REPLACE VIEW mes_core.vw_state_duration_hourly AS
+WITH timeline AS (
+    SELECT asset_id, asset_name, state_type_name, start_time, end_time
+    FROM mes_core.vw_state_timeline
+    WHERE removed IS DISTINCT FROM TRUE
+      AND end_time IS NOT NULL
+),
+bucketed AS (
+    SELECT
+        t.asset_id,
+        t.asset_name,
+        t.state_type_name,
+        bucket AS hour,
+        EXTRACT(EPOCH FROM (
+            LEAST(t.end_time, bucket + INTERVAL '1 hour')
+            - GREATEST(t.start_time, bucket)
+        )) AS clipped_duration
+    FROM timeline t
+    CROSS JOIN LATERAL generate_series(
+        time_bucket('1 hour', t.start_time),
+        time_bucket('1 hour', t.end_time - INTERVAL '1 microsecond'),
+        INTERVAL '1 hour'
+    ) AS bucket
+)
 SELECT
     asset_id,
     asset_name,
     state_type_name,
-    time_bucket(INTERVAL '1 hour', start_time) AS hour,
-    SUM(duration_seconds) AS total_duration_seconds
-FROM mes_core.vw_state_timeline
-WHERE removed IS DISTINCT FROM TRUE
+    hour,
+    SUM(clipped_duration) AS total_duration_seconds
+FROM bucketed
 GROUP BY
     asset_id,
     asset_name,
     state_type_name,
     hour;
 
-COMMENT ON VIEW mes_core.vw_state_duration_hourly IS 'Summarizes state durations by asset and state type, hourly.';
+COMMENT ON VIEW mes_core.vw_state_duration_hourly IS 'Summarizes state durations by asset and state type, hourly. Uses boundary-splitting to correctly attribute cross-bucket states.';
 
 -- ===============================================================
 -- View: vw_state_duration_daily
@@ -91,21 +113,43 @@ COMMENT ON VIEW mes_core.vw_state_duration_hourly IS 'Summarizes state durations
 -- ===============================================================
 
 CREATE OR REPLACE VIEW mes_core.vw_state_duration_daily AS
+WITH timeline AS (
+    SELECT asset_id, asset_name, state_type_name, start_time, end_time
+    FROM mes_core.vw_state_timeline
+    WHERE removed IS DISTINCT FROM TRUE
+      AND end_time IS NOT NULL
+),
+bucketed AS (
+    SELECT
+        t.asset_id,
+        t.asset_name,
+        t.state_type_name,
+        bucket AS day,
+        EXTRACT(EPOCH FROM (
+            LEAST(t.end_time, bucket + INTERVAL '1 day')
+            - GREATEST(t.start_time, bucket)
+        )) AS clipped_duration
+    FROM timeline t
+    CROSS JOIN LATERAL generate_series(
+        time_bucket('1 day', t.start_time),
+        time_bucket('1 day', t.end_time - INTERVAL '1 microsecond'),
+        INTERVAL '1 day'
+    ) AS bucket
+)
 SELECT
     asset_id,
     asset_name,
     state_type_name,
-    time_bucket(INTERVAL '1 day', start_time) AS day,
-    SUM(duration_seconds) AS total_duration_seconds
-FROM mes_core.vw_state_timeline
-WHERE removed IS DISTINCT FROM TRUE
+    day,
+    SUM(clipped_duration) AS total_duration_seconds
+FROM bucketed
 GROUP BY
     asset_id,
     asset_name,
     state_type_name,
     day;
 
-COMMENT ON VIEW mes_core.vw_state_duration_daily IS 'Summarizes state durations by asset and state type, daily.';
+COMMENT ON VIEW mes_core.vw_state_duration_daily IS 'Summarizes state durations by asset and state type, daily. Uses boundary-splitting to correctly attribute cross-bucket states.';
 
 -- ===============================================================
 -- View: vw_state_downtime_events
@@ -143,6 +187,7 @@ COMMENT ON VIEW mes_core.vw_state_downtime_events IS 'Lists all downtime events 
 -- Description: Full production log entries with asset and product names
 -- ===============================================================
 
+DROP VIEW IF EXISTS mes_core.vw_production_log;
 CREATE OR REPLACE VIEW mes_core.vw_production_log AS
 SELECT
     pl.production_log_id,
@@ -152,7 +197,11 @@ SELECT
     pl.product_name,
     pl.start_ts,
     pl.end_ts,
-    COALESCE(SUM(cl.quantity), 0) AS total_count,
+    SUM(CASE WHEN cl.count_type_name = 'GoodCount' THEN cl.quantity ELSE 0 END) AS good_count,
+    SUM(CASE WHEN cl.count_type_name = 'ScrapCount' THEN cl.quantity ELSE 0 END) AS scrap_count,
+    SUM(CASE WHEN cl.count_type_name = 'RejectCount' THEN cl.quantity ELSE 0 END) AS reject_count,
+    SUM(CASE WHEN cl.count_type_name = 'InfeedCount' THEN cl.quantity ELSE 0 END) AS infeed_count,
+    SUM(CASE WHEN cl.count_type_name IN ('GoodCount','ScrapCount','RejectCount') THEN cl.quantity ELSE 0 END) AS total_count,
     pl.additional_info,
     pl.logged_by,
     pl.logged_at,
@@ -177,13 +226,14 @@ GROUP BY
     pl.updated_at,
     pl.removed;
 
-COMMENT ON VIEW mes_core.vw_production_log IS 'Full production log entries with asset and product names.';
+COMMENT ON VIEW mes_core.vw_production_log IS 'Full production log entries with per-type count breakdown. total_count = Good + Scrap + Reject (output total, excludes Infeed/Pallet).';
 
 -- ===============================================================
 -- View: vw_production_current
 -- Description: Currently active (open) production logs
 -- ===============================================================
 
+DROP VIEW IF EXISTS mes_core.vw_production_current;
 CREATE OR REPLACE VIEW mes_core.vw_production_current AS
 SELECT
     pl.production_log_id,
@@ -192,7 +242,11 @@ SELECT
     pl.product_id,
     pl.product_name,
     pl.start_ts,
-    COALESCE(SUM(cl.quantity), 0) AS total_count,
+    SUM(CASE WHEN cl.count_type_name = 'GoodCount' THEN cl.quantity ELSE 0 END) AS good_count,
+    SUM(CASE WHEN cl.count_type_name = 'ScrapCount' THEN cl.quantity ELSE 0 END) AS scrap_count,
+    SUM(CASE WHEN cl.count_type_name = 'RejectCount' THEN cl.quantity ELSE 0 END) AS reject_count,
+    SUM(CASE WHEN cl.count_type_name = 'InfeedCount' THEN cl.quantity ELSE 0 END) AS infeed_count,
+    SUM(CASE WHEN cl.count_type_name IN ('GoodCount','ScrapCount','RejectCount') THEN cl.quantity ELSE 0 END) AS total_count,
     pl.additional_info,
     pl.logged_by,
     pl.logged_at
@@ -211,13 +265,14 @@ GROUP BY
     pl.logged_by,
     pl.logged_at;
 
-COMMENT ON VIEW mes_core.vw_production_current IS 'Currently active (open) production logs.';
+COMMENT ON VIEW mes_core.vw_production_current IS 'Currently active (open) production logs with per-type count breakdown. total_count = Good + Scrap + Reject (output total).';
 
 -- ===============================================================
 -- View: vw_production_yield
 -- Description: Yield calculation by production log
 -- ===============================================================
 
+DROP VIEW IF EXISTS mes_core.vw_production_yield;
 CREATE OR REPLACE VIEW mes_core.vw_production_yield AS
 SELECT
     pl.production_log_id,
@@ -225,11 +280,13 @@ SELECT
     pl.asset_name,
     pl.product_id,
     pl.product_name,
-    SUM(CASE WHEN cl.count_type_name ILIKE 'good' THEN cl.quantity ELSE 0 END) AS good_quantity,
-    SUM(cl.quantity) AS total_quantity,
+    SUM(CASE WHEN cl.count_type_name = 'GoodCount' THEN cl.quantity ELSE 0 END) AS good_quantity,
+    SUM(CASE WHEN cl.count_type_name IN ('GoodCount', 'ScrapCount', 'RejectCount') THEN cl.quantity ELSE 0 END) AS produced_quantity,
     CASE
-        WHEN SUM(cl.quantity) > 0
-        THEN ROUND(SUM(CASE WHEN cl.count_type_name ILIKE 'good' THEN cl.quantity ELSE 0 END) / SUM(cl.quantity) * 100, 2)
+        WHEN SUM(CASE WHEN cl.count_type_name IN ('GoodCount', 'ScrapCount', 'RejectCount') THEN cl.quantity ELSE 0 END) > 0
+        THEN ROUND(
+            SUM(CASE WHEN cl.count_type_name = 'GoodCount' THEN cl.quantity ELSE 0 END)
+            / SUM(CASE WHEN cl.count_type_name IN ('GoodCount', 'ScrapCount', 'RejectCount') THEN cl.quantity ELSE 0 END) * 100, 2)
         ELSE NULL
     END AS yield_percent
 FROM mes_core.production_log pl
@@ -243,13 +300,14 @@ GROUP BY
     pl.product_id,
     pl.product_name;
 
-COMMENT ON VIEW mes_core.vw_production_yield IS 'Yield calculation by production log.';
+COMMENT ON VIEW mes_core.vw_production_yield IS 'Yield calculation by production log. produced_quantity = Good + Scrap + Reject (excludes Infeed/Pallet). yield_percent = Good / Produced * 100.';
 
 -- ===============================================================
 -- View: vw_production_throughput_rate
 -- Description: Throughput and performance percent based on actual vs ideal rates
 -- ===============================================================
 
+DROP VIEW IF EXISTS mes_core.vw_production_throughput_rate;
 CREATE OR REPLACE VIEW mes_core.vw_production_throughput_rate AS
 SELECT
     pl.production_log_id,
@@ -261,10 +319,10 @@ SELECT
     pl.start_ts,
     pl.end_ts,
     EXTRACT(EPOCH FROM (pl.end_ts - pl.start_ts)) AS run_duration_seconds,
-    COALESCE(SUM(cl.quantity), 0) AS total_count,
+    COALESCE(SUM(cl.quantity) FILTER (WHERE cl.count_type_name = 'GoodCount'), 0) AS good_count,
     CASE
         WHEN EXTRACT(EPOCH FROM (pl.end_ts - pl.start_ts)) > 0
-        THEN ROUND(COALESCE(SUM(cl.quantity), 0) / EXTRACT(EPOCH FROM (pl.end_ts - pl.start_ts)), 4)
+        THEN ROUND(COALESCE(SUM(cl.quantity) FILTER (WHERE cl.count_type_name = 'GoodCount'), 0) / EXTRACT(EPOCH FROM (pl.end_ts - pl.start_ts)), 4)
         ELSE NULL
     END AS actual_rate,
     CASE
@@ -275,7 +333,7 @@ SELECT
     CASE
         WHEN pd.ideal_cycle_time > 0
          AND EXTRACT(EPOCH FROM (pl.end_ts - pl.start_ts)) > 0
-        THEN ROUND((COALESCE(SUM(cl.quantity), 0) / EXTRACT(EPOCH FROM (pl.end_ts - pl.start_ts))) / (1.0 / pd.ideal_cycle_time) * 100, 2)
+        THEN ROUND((COALESCE(SUM(cl.quantity) FILTER (WHERE cl.count_type_name = 'GoodCount'), 0) / EXTRACT(EPOCH FROM (pl.end_ts - pl.start_ts))) / (1.0 / pd.ideal_cycle_time) * 100, 2)
         ELSE NULL
     END AS performance_percent
 FROM mes_core.production_log pl
@@ -293,7 +351,7 @@ GROUP BY
     pl.start_ts,
     pl.end_ts;
 
-COMMENT ON VIEW mes_core.vw_production_throughput_rate IS 'Throughput and performance percent based on actual vs ideal rates.';
+COMMENT ON VIEW mes_core.vw_production_throughput_rate IS 'Throughput and performance percent based on actual vs ideal rates. Uses only GoodCount for rate calculations.';
 
 -- ===============================================================
 -- View: vw_production_state_summary
@@ -393,6 +451,7 @@ JOIN mes_core.measurement_log ml
   AND ml.logged_at >= pl.start_ts
   AND (pl.end_ts IS NULL OR ml.logged_at < pl.end_ts)
 WHERE ml.removed IS DISTINCT FROM TRUE
+  AND pl.removed IS DISTINCT FROM TRUE
 GROUP BY
     pl.production_log_id,
     pl.asset_id,
@@ -455,7 +514,7 @@ SELECT
     ml.logged_at,
     ml.additional_info
 FROM mes_core.measurement_log ml
-WHERE ml.in_tolerance IS DISTINCT FROM TRUE
+WHERE ml.in_tolerance = false
 AND ml.removed IS DISTINCT FROM TRUE;
 
 COMMENT ON VIEW mes_core.vw_measurement_out_of_tolerance IS 'Identifies measurements outside tolerance.';
@@ -501,10 +560,12 @@ SELECT
     NULL::TEXT AS unit,
     sl.logged_at AS start_ts,
     NULL::TIMESTAMPTZ AS end_ts,
-    sln.note,
+    (SELECT string_agg(sln.note, '; ' ORDER BY sln.note_id)
+     FROM mes_core.state_log_note sln
+     WHERE sln.state_log_id = sl.state_log_id
+       AND sln.removed IS DISTINCT FROM TRUE) AS note,
     sl.logged_at
 FROM mes_core.state_log sl
-LEFT JOIN mes_core.state_log_note sln ON sln.state_log_id = sl.state_log_id AND sln.removed IS DISTINCT FROM TRUE
 WHERE sl.removed IS DISTINCT FROM TRUE
 
 UNION ALL
@@ -518,10 +579,12 @@ SELECT
     NULL::TEXT AS unit,
     pl.start_ts,
     pl.end_ts,
-    pln.note,
+    (SELECT string_agg(pln.note, '; ' ORDER BY pln.note_id)
+     FROM mes_core.production_log_note pln
+     WHERE pln.production_log_id = pl.production_log_id
+       AND pln.removed IS DISTINCT FROM TRUE) AS note,
     pl.logged_at
 FROM mes_core.production_log pl
-LEFT JOIN mes_core.production_log_note pln ON pln.production_log_id = pl.production_log_id AND pln.removed IS DISTINCT FROM TRUE
 WHERE pl.removed IS DISTINCT FROM TRUE
 
 UNION ALL
@@ -535,10 +598,12 @@ SELECT
     cl.count_type_name AS unit,
     cl.logged_at AS start_ts,
     NULL::TIMESTAMPTZ AS end_ts,
-    cln.note,
+    (SELECT string_agg(cln.note, '; ' ORDER BY cln.note_id)
+     FROM mes_core.count_log_note cln
+     WHERE cln.count_log_id = cl.count_log_id
+       AND cln.removed IS DISTINCT FROM TRUE) AS note,
     cl.logged_at
 FROM mes_core.count_log cl
-LEFT JOIN mes_core.count_log_note cln ON cln.count_log_id = cl.count_log_id AND cln.removed IS DISTINCT FROM TRUE
 WHERE cl.removed IS DISTINCT FROM TRUE
 
 UNION ALL
@@ -552,10 +617,12 @@ SELECT
     ml.unit_of_measure AS unit,
     ml.logged_at AS start_ts,
     NULL::TIMESTAMPTZ AS end_ts,
-    mln.note,
+    (SELECT string_agg(mln.note, '; ' ORDER BY mln.note_id)
+     FROM mes_core.measurement_log_note mln
+     WHERE mln.measurement_log_id = ml.measurement_log_id
+       AND mln.removed IS DISTINCT FROM TRUE) AS note,
     ml.logged_at
 FROM mes_core.measurement_log ml
-LEFT JOIN mes_core.measurement_log_note mln ON mln.measurement_log_id = ml.measurement_log_id AND mln.removed IS DISTINCT FROM TRUE
 WHERE ml.removed IS DISTINCT FROM TRUE
 
 UNION ALL
@@ -569,10 +636,12 @@ SELECT
     kl.kpi_name AS unit,
     kl.start_ts,
     kl.end_ts,
-    kln.note,
+    (SELECT string_agg(kln.note, '; ' ORDER BY kln.note_id)
+     FROM mes_core.kpi_log_note kln
+     WHERE kln.kpi_log_id = kl.kpi_log_id
+       AND kln.removed IS DISTINCT FROM TRUE) AS note,
     kl.logged_at
 FROM mes_core.kpi_log kl
-LEFT JOIN mes_core.kpi_log_note kln ON kln.kpi_log_id = kl.kpi_log_id AND kln.removed IS DISTINCT FROM TRUE
 WHERE kl.removed IS DISTINCT FROM TRUE;
 
 COMMENT ON VIEW mes_core.vw_unified_event_log IS 'Unified log combining state, production, count, measurement, and KPI events. WARNING: Always filter by logged_at or asset_id to avoid full table scans across 5 hypertables.';
@@ -641,31 +710,43 @@ COMMENT ON VIEW mes_core.vw_dq_unknown_product_summary_hourly IS 'Data Quality: 
 -- ===============================================================
 
 CREATE OR REPLACE VIEW mes_core.vw_dq_unknown_product_summary_daily AS
+WITH daily_totals AS (
+    SELECT
+        asset_id,
+        time_bucket(INTERVAL '1 day', logged_at) AS day,
+        COUNT(*) AS total_events
+    FROM mes_core.count_log
+    WHERE removed IS DISTINCT FROM TRUE
+    GROUP BY asset_id, day
+),
+unknown_counts AS (
+    SELECT
+        cl.asset_id,
+        cl.asset_name,
+        cl.count_type_name,
+        time_bucket(INTERVAL '1 day', cl.logged_at) AS day,
+        COUNT(*) AS unknown_count_events,
+        SUM(cl.quantity) AS unknown_quantity_total
+    FROM mes_core.count_log cl
+    WHERE cl.product_id = 1  -- Reserved Unknown product ID
+      AND cl.removed IS DISTINCT FROM TRUE
+    GROUP BY
+        cl.asset_id,
+        cl.asset_name,
+        cl.count_type_name,
+        day
+)
 SELECT
-    cl.asset_id,
-    cl.asset_name,
-    cl.count_type_name,
-    time_bucket(INTERVAL '1 day', cl.logged_at) AS day,
-    COUNT(*) AS unknown_count_events,
-    SUM(cl.quantity) AS unknown_quantity_total,
-    ROUND(COUNT(*)::numeric / NULLIF(total.total_events, 0) * 100, 2) AS unknown_percent
-FROM mes_core.count_log cl
-CROSS JOIN LATERAL (
-    SELECT COUNT(*) AS total_events
-    FROM mes_core.count_log cl2
-    WHERE cl2.asset_id = cl.asset_id
-      AND cl2.removed IS DISTINCT FROM TRUE
-      AND time_bucket(INTERVAL '1 day', cl2.logged_at) = time_bucket(INTERVAL '1 day', cl.logged_at)
-) total
-WHERE cl.product_id = 1  -- Reserved Unknown product ID
-  AND cl.removed IS DISTINCT FROM TRUE
-GROUP BY
-    cl.asset_id,
-    cl.asset_name,
-    cl.count_type_name,
-    day,
-    total.total_events
-ORDER BY day DESC, unknown_count_events DESC;
+    uc.asset_id,
+    uc.asset_name,
+    uc.count_type_name,
+    uc.day,
+    uc.unknown_count_events,
+    uc.unknown_quantity_total,
+    ROUND(uc.unknown_count_events::numeric / NULLIF(dt.total_events, 0) * 100, 2) AS unknown_percent
+FROM unknown_counts uc
+JOIN daily_totals dt ON dt.asset_id = uc.asset_id AND dt.day = uc.day
+ORDER BY uc.day DESC, uc.unknown_count_events DESC;
 
 COMMENT ON VIEW mes_core.vw_dq_unknown_product_summary_daily IS 'Data Quality: Daily summary of Unknown product counts with percentage. Target: 0% unknown. Investigate assets with >5% unknown products.';
 

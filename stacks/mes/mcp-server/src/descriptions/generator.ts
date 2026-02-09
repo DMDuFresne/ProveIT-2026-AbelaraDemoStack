@@ -1,17 +1,32 @@
 /**
  * Description generator module
- * Combines static descriptions with dynamic schema data
+ * Combines static descriptions with dynamic schema data and domain context
  */
 
-import { getSchemaMetadata, getTable } from '../database/schema-loader.js';
+import { getSchemaMetadata, getTable, getDatabaseContext } from '../database/schema-loader.js';
+import { getConfig } from '../config.js';
 import { TableInfo, FunctionInfo, SchemaMetadata } from '../types/index.js';
 import {
   TABLE_DESCRIPTIONS,
   FUNCTION_DESCRIPTIONS,
   QUERY_TOOL_DESCRIPTION,
-  MES_CONCEPTS,
+  DOMAIN_CONCEPTS,
   SCHEMA_OVERVIEW,
 } from './static.js';
+
+/**
+ * Get the domain context from configuration
+ * This is loaded once at startup and cached
+ */
+let cachedDomainContext: string | null = null;
+
+export function getDomainContext(): string {
+  if (cachedDomainContext === null) {
+    const config = getConfig();
+    cachedDomainContext = config.domainContext || '';
+  }
+  return cachedDomainContext;
+}
 
 /**
  * Get enhanced description for a table, combining database comment with static description
@@ -75,12 +90,13 @@ export function formatColumnInfo(table: TableInfo): string {
 }
 
 /**
- * Generate table list description
+ * Generate table list description with schema comments
  */
 export async function generateTableListDescription(
   schemaFilter?: string
 ): Promise<string> {
   const schema = await getSchemaMetadata();
+  const dbContext = await getDatabaseContext();
   let tables = [...schema.tables, ...schema.views];
 
   if (schemaFilter) {
@@ -99,8 +115,21 @@ export async function generateTableListDescription(
 
   const lines: string[] = [];
 
+  // Add database context if available
+  if (dbContext.databaseComment) {
+    lines.push(`# Database: ${dbContext.databaseName}`);
+    lines.push(dbContext.databaseComment);
+    lines.push('');
+  }
+
   for (const [schemaName, schemaTables] of grouped) {
     lines.push(`\n## Schema: ${schemaName}`);
+
+    // Add schema comment if available
+    const schemaComment = dbContext.schemaComments[schemaName];
+    if (schemaComment) {
+      lines.push(`*${schemaComment}*`);
+    }
     lines.push('');
 
     const tableList = schemaTables.filter(t => t.tableType === 'table');
@@ -163,9 +192,20 @@ export async function generateSchemaOverview(): Promise<SchemaMetadata> {
 }
 
 /**
- * Generate the complete query tool description
+ * Generate the complete query tool description with domain context
  */
 export function getQueryToolDescription(): string {
+  const domainContext = getDomainContext();
+
+  if (domainContext) {
+    return `${domainContext}\n\n${QUERY_TOOL_DESCRIPTION}`;
+  }
+
+  // Use static content if available, otherwise just base description
+  if (DOMAIN_CONCEPTS || SCHEMA_OVERVIEW) {
+    return `${DOMAIN_CONCEPTS}\n\n${SCHEMA_OVERVIEW}\n\n${QUERY_TOOL_DESCRIPTION}`;
+  }
+
   return QUERY_TOOL_DESCRIPTION;
 }
 
@@ -173,33 +213,65 @@ export function getQueryToolDescription(): string {
  * Generate list_tables tool description
  */
 export function getListTablesToolDescription(): string {
-  return `List all tables and views in the MES database.
+  const domainContext = getDomainContext();
+  const base = `List all tables and views in the database with their descriptions.
 
-${MES_CONCEPTS}
+Returns table names organized by schema with:
+- Table/view names and types
+- Database comments describing each object
+- Schema-level descriptions when available
 
-Optionally filter by schema name. Returns table names with descriptions.`;
+Optionally filter by schema name.`;
+
+  if (domainContext) {
+    return `${base}\n\n${domainContext}`;
+  }
+
+  if (DOMAIN_CONCEPTS) {
+    return `${base}\n\n${DOMAIN_CONCEPTS}`;
+  }
+
+  return base;
 }
 
 /**
  * Generate describe_table tool description
  */
 export function getDescribeTableToolDescription(): string {
-  return `Get detailed information about a specific table or view.
+  const base = `Get detailed information about a specific table or view.
 
-Returns column names, data types, constraints, foreign keys, and descriptions.
+Returns:
+- Column names and data types
+- Primary key and foreign key constraints
+- Nullability and default values
+- Column-level comments/descriptions
+- Foreign key relationships to other tables`;
 
-${SCHEMA_OVERVIEW}`;
+  if (SCHEMA_OVERVIEW) {
+    return `${base}\n\n${SCHEMA_OVERVIEW}`;
+  }
+
+  return base;
 }
 
 /**
  * Generate schema_overview tool description
  */
 export function getSchemaOverviewToolDescription(): string {
-  return `Get complete schema metadata as structured JSON.
+  const domainContext = getDomainContext();
+  const base = `Get complete schema metadata as structured JSON.
 
 Returns all tables, views, functions with their columns, parameters, and descriptions.
 
-Useful for understanding the database structure programmatically.
+Useful for understanding the database structure programmatically.`;
 
-${MES_CONCEPTS}`;
+  if (domainContext) {
+    return `${base}\n\n${domainContext}`;
+  }
+
+  if (DOMAIN_CONCEPTS) {
+    return `${base}\n\n${DOMAIN_CONCEPTS}`;
+  }
+
+  return base;
 }

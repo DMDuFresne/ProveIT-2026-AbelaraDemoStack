@@ -1,7 +1,7 @@
 {
-  "name": "@proveit/mes-mcp-server",
-  "version": "2.0.0",
-  "description": "Custom MCP server for ProveIT MES database with Streamable HTTP + OAuth",
+  "name": "@generic/postgres-mcp-server",
+  "version": "2.1.0",
+  "description": "Generic PostgreSQL MCP server with self-documenting schema introspection and optional domain context",
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
@@ -17,10 +17,11 @@
   "keywords": [
     "mcp",
     "model-context-protocol",
-    "mes",
-    "manufacturing",
     "postgres",
-    "timescaledb",
+    "postgresql",
+    "database",
+    "self-documenting",
+    "schema-introspection",
     "streamable-http",
     "oauth"
   ],

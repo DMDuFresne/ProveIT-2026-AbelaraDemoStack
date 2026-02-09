@@ -1,5 +1,5 @@
 /**
- * Type definitions for the MES MCP Server
+ * Type definitions for the PostgreSQL MCP Server
  */
 
 /**
@@ -63,6 +63,15 @@ export interface SchemaMetadata {
 }
 
 /**
+ * Database and schema level context from PostgreSQL comments
+ */
+export interface DatabaseContext {
+  databaseName: string;
+  databaseComment: string | null;
+  schemaComments: Record<string, string>;
+}
+
+/**
  * Query result with metadata
  */
 export interface QueryResult {
@@ -82,7 +91,10 @@ export interface ToolResult {
 }
 
 /**
- * Dangerous SQL keywords that should be blocked
+ * Dangerous SQL statement-level keywords that should be blocked.
+ * Defense-in-depth only — the database connection uses BEGIN READ ONLY.
+ * Kept minimal to avoid false positives on legitimate SELECT queries
+ * that contain these words in string literals or column names.
  */
 export const BLOCKED_KEYWORDS = [
   'INSERT',
@@ -94,30 +106,7 @@ export const BLOCKED_KEYWORDS = [
   'TRUNCATE',
   'GRANT',
   'REVOKE',
-  'COMMIT',
-  'ROLLBACK',
-  'SAVEPOINT',
   'COPY',
-  'VACUUM',
-  'ANALYZE',
-  'REINDEX',
-  'CLUSTER',
-  'REFRESH',
-  'LOCK',
-  'UNLISTEN',
-  'LISTEN',
-  'NOTIFY',
-  'RESET',
-  'SET',
-  'DISCARD',
-  'PREPARE',
-  'EXECUTE',
-  'DEALLOCATE',
-  'DECLARE',
-  'FETCH',
-  'MOVE',
-  'CLOSE',
-  'CALL',
 ] as const;
 
 export type BlockedKeyword = typeof BLOCKED_KEYWORDS[number];

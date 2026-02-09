@@ -339,6 +339,8 @@ services:
       MCP_RATE_LIMIT_ATTEMPTS: ${MES_MCP_RATE_LIMIT_ATTEMPTS:-5}
       # Rate limiting: lockout duration in ms (default: 900000 = 15 minutes)
       MCP_RATE_LIMIT_WINDOW_MS: ${MES_MCP_RATE_LIMIT_WINDOW_MS:-900000}
+      # OAuth token lifetime in seconds (default: 604800 = 7 days)
+      MCP_OAUTH_TOKEN_EXPIRES_IN: ${MES_MCP_OAUTH_TOKEN_EXPIRES_IN:-604800}
       # Schema and query configuration
       SCHEMA_REFRESH_INTERVAL_MS: ${MES_MCP_SCHEMA_REFRESH_MS:-300000}
       QUERY_TIMEOUT_MS: ${MES_MCP_QUERY_TIMEOUT_MS:-30000}
@@ -346,7 +348,7 @@ services:
       # MES-specific schema configuration
       EXPOSED_SCHEMAS: mes_core,mes_audit,mes_custom
       # Domain context file for MES-specific documentation
-      DOMAIN_CONTEXT_FILE: /app/mes-context.md
+      DOMAIN_CONTEXT_FILE: /app/context.md
     ports:
       - "${MES_MCP_PORT:-48100}:3000"
     networks:

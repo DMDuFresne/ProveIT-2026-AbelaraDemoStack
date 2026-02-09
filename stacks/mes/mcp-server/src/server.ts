@@ -36,6 +36,7 @@ import {
   executeGetTableStatsTool,
   executeValidateQueryTool,
   executeRefreshSchemaTool,
+  executeGetOntologyTool,
 } from './tools/index.js';
 
 // Import descriptions
@@ -50,6 +51,9 @@ const EXTERNAL_BASE_URL = process.env.EXTERNAL_BASE_URL || `http://localhost:${M
 
 // Check for OAuth flag
 const useOAuth = process.argv.includes('--oauth');
+
+// OAuth token lifetime (seconds) — how long before client must re-authorize
+const OAUTH_TOKEN_EXPIRES_IN = parseInt(process.env.MCP_OAUTH_TOKEN_EXPIRES_IN || '604800', 10); // 7 days
 
 // Rate limiting configuration
 const RATE_LIMIT_MAX_ATTEMPTS = parseInt(process.env.MCP_RATE_LIMIT_ATTEMPTS || '5', 10);
@@ -307,6 +311,38 @@ function createMcpServer(): McpServer {
     },
     async (args) => {
       return executeValidateQueryTool({ sql: args.sql });
+    }
+  );
+
+  // Register get_ontology tool
+  server.tool(
+    'get_ontology',
+    'Get the semantic ontology of the database — check constraints, enum types, unique keys, view definitions, indexes, triggers, and row counts. Use this to understand business rules and data semantics beyond schema structure.',
+    {
+      schema: z.string().optional().describe('Filter to a specific schema name'),
+      table: z.string().optional().describe('Focus on a specific table and its FK neighborhood'),
+      sections: z
+        .array(
+          z.enum([
+            'overview',
+            'constraints',
+            'enums',
+            'relationships',
+            'views',
+            'indexes',
+            'triggers',
+            'domain_context',
+          ])
+        )
+        .optional()
+        .describe('Sections to include (default: all)'),
+    },
+    async (args) => {
+      return executeGetOntologyTool({
+        schema: args.schema,
+        table: args.table,
+        sections: args.sections,
+      });
     }
   );
 
@@ -606,7 +642,7 @@ export async function startServer(): Promise<void> {
         res.json({
           access_token: randomUUID(),
           token_type: 'Bearer',
-          expires_in: 3600,
+          expires_in: OAUTH_TOKEN_EXPIRES_IN,
         });
         return;
       }
@@ -630,7 +666,7 @@ export async function startServer(): Promise<void> {
         res.json({
           access_token: randomUUID(),
           token_type: 'Bearer',
-          expires_in: 3600,
+          expires_in: OAUTH_TOKEN_EXPIRES_IN,
         });
         return;
       }

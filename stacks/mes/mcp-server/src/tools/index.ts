@@ -87,6 +87,13 @@ import {
   executeRefreshSchemaTool,
 } from './refresh-schema.js';
 
+import {
+  getOntologyToolName,
+  getOntologyToolSchema,
+  getGetOntologyToolDefinition,
+  executeGetOntologyTool,
+} from './get-ontology.js';
+
 // Re-export everything
 export {
   queryToolName,
@@ -137,6 +144,10 @@ export {
   refreshSchemaToolSchema,
   getRefreshSchemaToolDefinition,
   executeRefreshSchemaTool,
+  getOntologyToolName,
+  getOntologyToolSchema,
+  getGetOntologyToolDefinition,
+  executeGetOntologyTool,
 };
 
 /**
@@ -161,6 +172,9 @@ export function getAllToolDefinitions() {
     getSearchColumnsToolDefinition(),
     getGetRelationshipsToolDefinition(),
     getGetTableStatsToolDefinition(),
+
+    // Semantic discovery tools
+    getGetOntologyToolDefinition(),
   ];
 }
 
@@ -185,6 +199,9 @@ export const toolExecutors = {
   search_columns: executeSearchColumnsTool,
   get_relationships: executeGetRelationshipsTool,
   get_table_stats: executeGetTableStatsTool,
+
+  // Semantic discovery tools
+  get_ontology: executeGetOntologyTool,
 } as const;
 
 export type ToolName = keyof typeof toolExecutors;

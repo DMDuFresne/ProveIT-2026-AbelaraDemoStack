@@ -51,6 +51,13 @@ export async function executeRefreshSchemaTool(
       '## Database Context',
       `- Database comment: ${summary.hasDatabaseComment ? 'Yes' : 'No'}`,
       `- Schemas with comments: ${summary.schemasWithComments}`,
+      '',
+      '## Ontology',
+      `- Check constraints: ${summary.checkConstraints}`,
+      `- Enum types: ${summary.enumTypes}`,
+      `- Unique constraints: ${summary.uniqueConstraints}`,
+      `- Indexes: ${summary.indexes}`,
+      `- Triggers: ${summary.triggers}`,
     ];
 
     return {

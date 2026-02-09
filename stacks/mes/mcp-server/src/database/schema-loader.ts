@@ -13,10 +13,19 @@ import {
   FunctionParameter,
   SchemaMetadata,
   DatabaseContext,
+  CheckConstraintInfo,
+  EnumTypeInfo,
+  UniqueConstraintInfo,
+  ViewDefinitionInfo,
+  IndexInfo,
+  TriggerInfo,
+  EstimatedRowCount,
+  OntologyMetadata,
 } from '../types/index.js';
 
 let cachedSchema: SchemaMetadata | null = null;
 let cachedDatabaseContext: DatabaseContext | null = null;
+let cachedOntology: OntologyMetadata | null = null;
 let lastRefreshTime: number = 0;
 
 /**
@@ -314,6 +323,7 @@ export async function getTable(
 export function clearSchemaCache(): void {
   cachedSchema = null;
   cachedDatabaseContext = null;
+  cachedOntology = null;
   lastRefreshTime = 0;
 }
 
@@ -396,12 +406,18 @@ export async function forceRefreshSchema(): Promise<{
   functions: number;
   schemasWithComments: number;
   hasDatabaseComment: boolean;
+  checkConstraints: number;
+  enumTypes: number;
+  uniqueConstraints: number;
+  indexes: number;
+  triggers: number;
 }> {
   clearSchemaCache();
 
-  const [schema, context] = await Promise.all([
+  const [schema, context, ontology] = await Promise.all([
     getSchemaMetadata(true),
     getDatabaseContext(true),
+    getOntologyMetadata(true),
   ]);
 
   return {
@@ -410,5 +426,416 @@ export async function forceRefreshSchema(): Promise<{
     functions: schema.functions.length,
     schemasWithComments: Object.keys(context.schemaComments).length,
     hasDatabaseComment: !!context.databaseComment,
+    checkConstraints: ontology.checkConstraints.length,
+    enumTypes: ontology.enumTypes.length,
+    uniqueConstraints: ontology.uniqueConstraints.length,
+    indexes: ontology.indexes.length,
+    triggers: ontology.triggers.length,
   };
+}
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+/**
+ * Normalize a value that may be a JS array or a PostgreSQL array string
+ * (e.g., "{val1,val2}") into a proper JS string array.
+ * node-postgres sometimes returns array_agg results as raw strings
+ * when it can't resolve the type OID.
+ */
+function ensureArray(value: unknown): string[] {
+  if (Array.isArray(value)) return value;
+  if (typeof value === 'string') {
+    // PostgreSQL text array format: {val1,val2,"val with spaces"}
+    const trimmed = value.replace(/^\{|\}$/g, '');
+    if (trimmed === '') return [];
+    // Simple split — handles unquoted and double-quoted elements
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < trimmed.length; i++) {
+      const ch = trimmed[i];
+      if (ch === '"') {
+        inQuotes = !inQuotes;
+      } else if (ch === ',' && !inQuotes) {
+        result.push(current);
+        current = '';
+      } else {
+        current += ch;
+      }
+    }
+    result.push(current);
+    return result;
+  }
+  return [];
+}
+
+// ─── Ontology Loaders ───────────────────────────────────────────────────────
+
+/**
+ * Load check constraints from pg_constraint WHERE contype = 'c'
+ */
+async function loadCheckConstraints(): Promise<CheckConstraintInfo[]> {
+  const config = getConfig();
+  const schemas = config.exposedSchemas;
+  const schemaPlaceholders = schemas.map((_, i) => `$${i + 1}`).join(', ');
+
+  const sql = `
+    SELECT
+      con.conname AS constraint_name,
+      n.nspname AS schema_name,
+      cl.relname AS table_name,
+      pg_get_constraintdef(con.oid, true) AS expression,
+      COALESCE(
+        array_agg(a.attname ORDER BY cols.ord) FILTER (WHERE a.attname IS NOT NULL),
+        ARRAY[]::text[]
+      ) AS columns
+    FROM pg_constraint con
+    JOIN pg_class cl ON con.conrelid = cl.oid
+    JOIN pg_namespace n ON cl.relnamespace = n.oid
+    LEFT JOIN LATERAL unnest(con.conkey)
+      WITH ORDINALITY AS cols(col_num, ord) ON true
+    LEFT JOIN pg_attribute a ON a.attrelid = con.conrelid
+      AND a.attnum = cols.col_num
+    WHERE con.contype = 'c'
+      AND n.nspname IN (${schemaPlaceholders})
+    GROUP BY con.oid, con.conname, n.nspname, cl.relname
+    ORDER BY n.nspname, cl.relname, con.conname
+  `;
+
+  const result = await rawQuery<{
+    constraint_name: string;
+    schema_name: string;
+    table_name: string;
+    expression: string;
+    columns: string[];
+  }>(sql, schemas);
+
+  return result.rows.map(row => ({
+    constraintName: row.constraint_name,
+    schemaName: row.schema_name,
+    tableName: row.table_name,
+    expression: row.expression,
+    columns: ensureArray(row.columns),
+  }));
+}
+
+/**
+ * Load custom enum types from pg_type + pg_enum
+ */
+async function loadEnumTypes(): Promise<EnumTypeInfo[]> {
+  const config = getConfig();
+  const schemas = config.exposedSchemas;
+  const schemaPlaceholders = schemas.map((_, i) => `$${i + 1}`).join(', ');
+
+  const sql = `
+    SELECT
+      n.nspname AS schema_name,
+      t.typname AS type_name,
+      array_agg(e.enumlabel ORDER BY e.enumsortorder) AS values,
+      obj_description(t.oid, 'pg_type') AS comment
+    FROM pg_type t
+    JOIN pg_namespace n ON t.typnamespace = n.oid
+    JOIN pg_enum e ON e.enumtypid = t.oid
+    WHERE t.typtype = 'e'
+      AND n.nspname IN (${schemaPlaceholders})
+    GROUP BY n.nspname, t.typname, t.oid
+    ORDER BY n.nspname, t.typname
+  `;
+
+  const result = await rawQuery<{
+    schema_name: string;
+    type_name: string;
+    values: string[];
+    comment: string | null;
+  }>(sql, schemas);
+
+  return result.rows.map(row => ({
+    schemaName: row.schema_name,
+    typeName: row.type_name,
+    values: ensureArray(row.values),
+    comment: row.comment,
+  }));
+}
+
+/**
+ * Load unique constraints (excluding PKs) from pg_constraint WHERE contype = 'u'
+ */
+async function loadUniqueConstraints(): Promise<UniqueConstraintInfo[]> {
+  const config = getConfig();
+  const schemas = config.exposedSchemas;
+  const schemaPlaceholders = schemas.map((_, i) => `$${i + 1}`).join(', ');
+
+  const sql = `
+    SELECT
+      con.conname AS constraint_name,
+      n.nspname AS schema_name,
+      cl.relname AS table_name,
+      array_agg(a.attname ORDER BY cols.ord) AS columns
+    FROM pg_constraint con
+    JOIN pg_class cl ON con.conrelid = cl.oid
+    JOIN pg_namespace n ON cl.relnamespace = n.oid
+    CROSS JOIN LATERAL unnest(con.conkey)
+      WITH ORDINALITY AS cols(col_num, ord)
+    JOIN pg_attribute a ON a.attrelid = con.conrelid
+      AND a.attnum = cols.col_num
+    WHERE con.contype = 'u'
+      AND n.nspname IN (${schemaPlaceholders})
+    GROUP BY con.conname, n.nspname, cl.relname
+    ORDER BY n.nspname, cl.relname, con.conname
+  `;
+
+  const result = await rawQuery<{
+    constraint_name: string;
+    schema_name: string;
+    table_name: string;
+    columns: string[];
+  }>(sql, schemas);
+
+  return result.rows.map(row => ({
+    constraintName: row.constraint_name,
+    schemaName: row.schema_name,
+    tableName: row.table_name,
+    columns: ensureArray(row.columns),
+  }));
+}
+
+/**
+ * Load view definitions via pg_get_viewdef (pretty-printed)
+ */
+async function loadViewDefinitions(): Promise<ViewDefinitionInfo[]> {
+  const config = getConfig();
+  const schemas = config.exposedSchemas;
+  const schemaPlaceholders = schemas.map((_, i) => `$${i + 1}`).join(', ');
+
+  const sql = `
+    SELECT
+      n.nspname AS schema_name,
+      c.relname AS view_name,
+      pg_get_viewdef(c.oid, true) AS definition,
+      obj_description(c.oid, 'pg_class') AS comment
+    FROM pg_class c
+    JOIN pg_namespace n ON c.relnamespace = n.oid
+    WHERE c.relkind IN ('v', 'm')
+      AND n.nspname IN (${schemaPlaceholders})
+    ORDER BY n.nspname, c.relname
+  `;
+
+  const result = await rawQuery<{
+    schema_name: string;
+    view_name: string;
+    definition: string | null;
+    comment: string | null;
+  }>(sql, schemas);
+
+  return result.rows
+    .filter(row => row.definition != null)
+    .map(row => ({
+      schemaName: row.schema_name,
+      viewName: row.view_name,
+      definition: row.definition!,
+      comment: row.comment,
+    }));
+}
+
+/**
+ * Load index information from pg_index + pg_class + pg_am
+ */
+async function loadIndexes(): Promise<IndexInfo[]> {
+  const config = getConfig();
+  const schemas = config.exposedSchemas;
+  const schemaPlaceholders = schemas.map((_, i) => `$${i + 1}`).join(', ');
+
+  const sql = `
+    SELECT
+      n.nspname AS schema_name,
+      t.relname AS table_name,
+      i.relname AS index_name,
+      array_agg(a.attname ORDER BY k.ord) AS columns,
+      ix.indisunique AS is_unique,
+      ix.indisprimary AS is_primary,
+      am.amname AS index_type,
+      pg_get_indexdef(ix.indexrelid) AS definition
+    FROM pg_index ix
+    JOIN pg_class i ON ix.indexrelid = i.oid
+    JOIN pg_class t ON ix.indrelid = t.oid
+    JOIN pg_namespace n ON t.relnamespace = n.oid
+    JOIN pg_am am ON i.relam = am.oid
+    CROSS JOIN LATERAL unnest(ix.indkey)
+      WITH ORDINALITY AS k(col_num, ord)
+    JOIN pg_attribute a ON a.attrelid = t.oid
+      AND a.attnum = k.col_num
+    WHERE n.nspname IN (${schemaPlaceholders})
+      AND k.col_num > 0
+    GROUP BY n.nspname, t.relname, i.relname, ix.indisunique,
+             ix.indisprimary, am.amname, ix.indexrelid
+    ORDER BY n.nspname, t.relname, i.relname
+  `;
+
+  const result = await rawQuery<{
+    schema_name: string;
+    table_name: string;
+    index_name: string;
+    columns: string[];
+    is_unique: boolean;
+    is_primary: boolean;
+    index_type: string;
+    definition: string;
+  }>(sql, schemas);
+
+  return result.rows.map(row => ({
+    schemaName: row.schema_name,
+    tableName: row.table_name,
+    indexName: row.index_name,
+    columns: ensureArray(row.columns),
+    isUnique: row.is_unique,
+    isPrimary: row.is_primary,
+    indexType: row.index_type,
+    definition: row.definition,
+  }));
+}
+
+/**
+ * Load trigger information from pg_trigger with tgtype bitmask decoding.
+ * tgtype bits: 0=ROW/STATEMENT, 1=BEFORE, 2=INSERT, 3=DELETE, 4=UPDATE, 5=TRUNCATE, 6=INSTEAD OF
+ */
+async function loadTriggers(): Promise<TriggerInfo[]> {
+  const config = getConfig();
+  const schemas = config.exposedSchemas;
+  const schemaPlaceholders = schemas.map((_, i) => `$${i + 1}`).join(', ');
+
+  const sql = `
+    SELECT
+      n.nspname AS schema_name,
+      c.relname AS table_name,
+      t.tgname AS trigger_name,
+      CASE
+        WHEN (t.tgtype & 66) = 66 THEN 'INSTEAD OF'
+        WHEN (t.tgtype & 2) = 2 THEN 'BEFORE'
+        ELSE 'AFTER'
+      END AS timing,
+      array_remove(ARRAY[
+        CASE WHEN (t.tgtype & 4) = 4 THEN 'INSERT' END,
+        CASE WHEN (t.tgtype & 8) = 8 THEN 'DELETE' END,
+        CASE WHEN (t.tgtype & 16) = 16 THEN 'UPDATE' END,
+        CASE WHEN (t.tgtype & 32) = 32 THEN 'TRUNCATE' END
+      ], NULL) AS events,
+      CASE WHEN (t.tgtype & 1) = 1 THEN 'ROW' ELSE 'STATEMENT' END AS orientation,
+      pn.nspname || '.' || p.proname AS function_name,
+      obj_description(t.oid, 'pg_trigger') AS comment
+    FROM pg_trigger t
+    JOIN pg_class c ON t.tgrelid = c.oid
+    JOIN pg_namespace n ON c.relnamespace = n.oid
+    JOIN pg_proc p ON t.tgfoid = p.oid
+    JOIN pg_namespace pn ON p.pronamespace = pn.oid
+    WHERE NOT t.tgisinternal
+      AND n.nspname IN (${schemaPlaceholders})
+    ORDER BY n.nspname, c.relname, t.tgname
+  `;
+
+  const result = await rawQuery<{
+    schema_name: string;
+    table_name: string;
+    trigger_name: string;
+    timing: string;
+    events: string[];
+    orientation: string;
+    function_name: string;
+    comment: string | null;
+  }>(sql, schemas);
+
+  return result.rows.map(row => ({
+    schemaName: row.schema_name,
+    tableName: row.table_name,
+    triggerName: row.trigger_name,
+    timing: row.timing,
+    events: ensureArray(row.events),
+    orientation: row.orientation,
+    functionName: row.function_name,
+    comment: row.comment,
+  }));
+}
+
+/**
+ * Load estimated row counts from pg_class.reltuples
+ */
+async function loadEstimatedRowCounts(): Promise<EstimatedRowCount[]> {
+  const config = getConfig();
+  const schemas = config.exposedSchemas;
+  const schemaPlaceholders = schemas.map((_, i) => `$${i + 1}`).join(', ');
+
+  const sql = `
+    SELECT
+      n.nspname AS schema_name,
+      c.relname AS table_name,
+      c.reltuples::bigint AS estimated_rows
+    FROM pg_class c
+    JOIN pg_namespace n ON c.relnamespace = n.oid
+    WHERE c.relkind IN ('r', 'p')
+      AND n.nspname IN (${schemaPlaceholders})
+    ORDER BY c.reltuples DESC
+  `;
+
+  const result = await rawQuery<{
+    schema_name: string;
+    table_name: string;
+    estimated_rows: string;
+  }>(sql, schemas);
+
+  return result.rows.map(row => ({
+    schemaName: row.schema_name,
+    tableName: row.table_name,
+    estimatedRows: parseInt(row.estimated_rows, 10) || 0,
+  }));
+}
+
+/**
+ * Load all ontology metadata in parallel
+ */
+async function loadOntologyMetadata(): Promise<OntologyMetadata> {
+  const [
+    checkConstraints,
+    enumTypes,
+    uniqueConstraints,
+    viewDefinitions,
+    indexes,
+    triggers,
+    estimatedRowCounts,
+  ] = await Promise.all([
+    loadCheckConstraints(),
+    loadEnumTypes(),
+    loadUniqueConstraints(),
+    loadViewDefinitions(),
+    loadIndexes(),
+    loadTriggers(),
+    loadEstimatedRowCounts(),
+  ]);
+
+  return {
+    checkConstraints,
+    enumTypes,
+    uniqueConstraints,
+    viewDefinitions,
+    indexes,
+    triggers,
+    estimatedRowCounts,
+    lastRefreshed: new Date(),
+  };
+}
+
+/**
+ * Get ontology metadata with caching
+ */
+export async function getOntologyMetadata(forceRefresh = false): Promise<OntologyMetadata> {
+  const config = getConfig();
+  const now = Date.now();
+
+  if (
+    forceRefresh ||
+    !cachedOntology ||
+    now - lastRefreshTime > config.schemaRefreshIntervalMs
+  ) {
+    cachedOntology = await loadOntologyMetadata();
+  }
+
+  return cachedOntology;
 }

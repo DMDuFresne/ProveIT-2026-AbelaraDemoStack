@@ -50,7 +50,7 @@ COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
 COPY --from=builder --chown=nodejs:nodejs /app/package.json ./
 
 # Copy domain context file (optional, can be overridden via volume mount)
-COPY --chown=nodejs:nodejs mes-context.md ./
+COPY --chown=nodejs:nodejs context.md ./
 
 # Switch to non-root user
 USER nodejs

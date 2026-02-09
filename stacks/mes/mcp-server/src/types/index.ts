@@ -110,3 +110,97 @@ export const BLOCKED_KEYWORDS = [
 ] as const;
 
 export type BlockedKeyword = typeof BLOCKED_KEYWORDS[number];
+
+// ─── Ontology Types ─────────────────────────────────────────────────────────
+
+/**
+ * Check constraint extracted from pg_constraint
+ */
+export interface CheckConstraintInfo {
+  constraintName: string;
+  schemaName: string;
+  tableName: string;
+  expression: string;
+  columns: string[];
+}
+
+/**
+ * Custom enum type extracted from pg_type + pg_enum
+ */
+export interface EnumTypeInfo {
+  schemaName: string;
+  typeName: string;
+  values: string[];
+  comment: string | null;
+}
+
+/**
+ * Unique constraint (natural keys beyond PKs) from pg_constraint
+ */
+export interface UniqueConstraintInfo {
+  constraintName: string;
+  schemaName: string;
+  tableName: string;
+  columns: string[];
+}
+
+/**
+ * View definition (SQL) from pg_get_viewdef
+ */
+export interface ViewDefinitionInfo {
+  schemaName: string;
+  viewName: string;
+  definition: string;
+  comment: string | null;
+}
+
+/**
+ * Index information from pg_index + pg_class + pg_am
+ */
+export interface IndexInfo {
+  schemaName: string;
+  tableName: string;
+  indexName: string;
+  columns: string[];
+  isUnique: boolean;
+  isPrimary: boolean;
+  indexType: string;
+  definition: string;
+}
+
+/**
+ * Trigger information from pg_trigger with tgtype bitmask decoded
+ */
+export interface TriggerInfo {
+  schemaName: string;
+  tableName: string;
+  triggerName: string;
+  timing: string;
+  events: string[];
+  orientation: string;
+  functionName: string;
+  comment: string | null;
+}
+
+/**
+ * Estimated row count from pg_class.reltuples
+ */
+export interface EstimatedRowCount {
+  schemaName: string;
+  tableName: string;
+  estimatedRows: number;
+}
+
+/**
+ * Combined ontology metadata — semantic understanding of the database
+ */
+export interface OntologyMetadata {
+  checkConstraints: CheckConstraintInfo[];
+  enumTypes: EnumTypeInfo[];
+  uniqueConstraints: UniqueConstraintInfo[];
+  viewDefinitions: ViewDefinitionInfo[];
+  indexes: IndexInfo[];
+  triggers: TriggerInfo[];
+  estimatedRowCounts: EstimatedRowCount[];
+  lastRefreshed: Date;
+}

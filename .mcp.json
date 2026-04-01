@@ -13,7 +13,7 @@
     },
     "wms-highbyte": {
       "type": "http",
-      "url": "http://192.168.30.231:45345/mcp",
+      "url": "http://192.168.50.225:45345/mcp",
       "headers": {
         "Authorization": "Bearer Abelara.jiNS273MfjLM9bPwsAKU2aJP7gjzfcn1JLcMHxbC9gU="
       }

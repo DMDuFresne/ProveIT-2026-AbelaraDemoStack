@@ -767,9 +767,15 @@ async function loadEstimatedRowCounts(): Promise<EstimatedRowCount[]> {
     SELECT
       n.nspname AS schema_name,
       c.relname AS table_name,
-      c.reltuples::bigint AS estimated_rows
+      CASE WHEN c.reltuples < 0 THEN 0 ELSE c.reltuples::bigint END AS estimated_rows,
+      CASE
+        WHEN c.reltuples < 0 THEN true
+        WHEN c.reltuples = 0 AND s.last_analyze IS NULL AND s.last_autoanalyze IS NULL THEN true
+        ELSE false
+      END AS never_analyzed
     FROM pg_class c
     JOIN pg_namespace n ON c.relnamespace = n.oid
+    LEFT JOIN pg_stat_user_tables s ON n.nspname = s.schemaname AND c.relname = s.relname
     WHERE c.relkind IN ('r', 'p')
       AND n.nspname IN (${schemaPlaceholders})
     ORDER BY c.reltuples DESC
@@ -779,12 +785,14 @@ async function loadEstimatedRowCounts(): Promise<EstimatedRowCount[]> {
     schema_name: string;
     table_name: string;
     estimated_rows: string;
+    never_analyzed: boolean;
   }>(sql, schemas);
 
   return result.rows.map(row => ({
     schemaName: row.schema_name,
     tableName: row.table_name,
     estimatedRows: parseInt(row.estimated_rows, 10) || 0,
+    neverAnalyzed: row.never_analyzed,
   }));
 }
 

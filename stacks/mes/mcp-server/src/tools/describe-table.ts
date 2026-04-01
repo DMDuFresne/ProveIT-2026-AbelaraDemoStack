@@ -2,49 +2,17 @@
  * Describe Table tool - Get detailed table/view information
  */
 
-import { z } from 'zod';
 import { generateTableDescription } from '../descriptions/generator.js';
-import { getDescribeTableToolDescription } from '../descriptions/generator.js';
 import { getDefaultSchema } from '../config.js';
 
-export const describeTableToolName = 'describe_table';
-
-export const describeTableToolSchema = z.object({
-  schema: z
-    .string()
-    .optional()
-    .describe('Schema name (uses configured default if not specified)'),
-  table: z.string().min(1).describe('Table or view name'),
-});
-
-export type DescribeTableToolInput = z.infer<typeof describeTableToolSchema>;
-
-export function getDescribeTableToolDefinition() {
-  const defaultSchema = getDefaultSchema();
-  return {
-    name: describeTableToolName,
-    description: getDescribeTableToolDescription(),
-    inputSchema: {
-      type: 'object' as const,
-      properties: {
-        schema: {
-          type: 'string',
-          description: `Schema name (default: ${defaultSchema})`,
-          default: defaultSchema,
-        },
-        table: {
-          type: 'string',
-          description: 'Table or view name',
-        },
-      },
-      required: ['table'],
-    },
-  };
+interface DescribeTableToolInput {
+  schema?: string;
+  table: string;
 }
 
 export async function executeDescribeTableTool(
   input: DescribeTableToolInput
-): Promise<{ content: Array<{ type: 'text'; text: string }> }> {
+): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: boolean }> {
   try {
     const schemaName = input.schema || getDefaultSchema();
     const description = await generateTableDescription(schemaName, input.table);
@@ -63,6 +31,7 @@ export async function executeDescribeTableTool(
           text: `Error describing table: ${errorMessage}`,
         },
       ],
+      isError: true,
     };
   }
 }

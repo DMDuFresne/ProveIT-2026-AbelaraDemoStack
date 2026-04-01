@@ -2,37 +2,11 @@
  * Refresh Schema tool - Force reload of schema metadata cache
  */
 
-import { z } from 'zod';
 import { forceRefreshSchema } from '../database/schema-loader.js';
 
-export const refreshSchemaToolName = 'refresh_schema';
-
-export const refreshSchemaToolSchema = z.object({});
-
-export type RefreshSchemaToolInput = z.infer<typeof refreshSchemaToolSchema>;
-
-export function getRefreshSchemaToolDefinition() {
-  return {
-    name: refreshSchemaToolName,
-    description: `Force refresh of the database schema cache.
-
-Use this tool when:
-- You've made DDL changes (CREATE/ALTER/DROP) and need to see them immediately
-- The cached schema information seems outdated
-- You want to verify the current database structure
-
-Returns a summary of the refreshed schema including counts of tables, views, and functions.`,
-    inputSchema: {
-      type: 'object' as const,
-      properties: {},
-      required: [],
-    },
-  };
-}
-
 export async function executeRefreshSchemaTool(
-  _input: RefreshSchemaToolInput
-): Promise<{ content: Array<{ type: 'text'; text: string }> }> {
+  _input: Record<string, never>
+): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: boolean }> {
   try {
     const startTime = Date.now();
     const summary = await forceRefreshSchema();
@@ -58,6 +32,10 @@ export async function executeRefreshSchemaTool(
       `- Unique constraints: ${summary.uniqueConstraints}`,
       `- Indexes: ${summary.indexes}`,
       `- Triggers: ${summary.triggers}`,
+      '',
+      '> **Note:** This refreshed the MCP server\'s metadata cache only. Row count estimates',
+      '> in `get_ontology` come from PostgreSQL statistics — run `ANALYZE schema.table`',
+      '> to update those.',
     ];
 
     return {
@@ -74,6 +52,7 @@ export async function executeRefreshSchemaTool(
           text: `Error refreshing schema: ${errorMessage}`,
         },
       ],
+      isError: true,
     };
   }
 }

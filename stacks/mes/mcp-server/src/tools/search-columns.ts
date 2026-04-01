@@ -2,55 +2,16 @@
  * Search Columns tool - Find columns by name pattern across all tables
  */
 
-import { z } from 'zod';
 import { getSchemaMetadata } from '../database/schema-loader.js';
 
-export const searchColumnsToolName = 'search_columns';
-
-export const searchColumnsToolSchema = z.object({
-  pattern: z
-    .string()
-    .min(1)
-    .describe('Search pattern (case-insensitive, partial match)'),
-  schema: z
-    .string()
-    .optional()
-    .describe('Optional schema name to filter'),
-});
-
-export type SearchColumnsToolInput = z.infer<typeof searchColumnsToolSchema>;
-
-export function getSearchColumnsToolDefinition() {
-  return {
-    name: searchColumnsToolName,
-    description: `Search for columns by name pattern across all tables and views.
-
-Useful for discovering:
-- All columns containing "asset" → find asset-related fields
-- All columns containing "time" or "ts" → find timestamp columns
-- All columns containing "id" → find primary/foreign keys
-
-Returns matching columns with their table, data type, and constraints.`,
-    inputSchema: {
-      type: 'object' as const,
-      properties: {
-        pattern: {
-          type: 'string',
-          description: 'Search pattern (case-insensitive, partial match)',
-        },
-        schema: {
-          type: 'string',
-          description: 'Optional schema name to filter',
-        },
-      },
-      required: ['pattern'],
-    },
-  };
+interface SearchColumnsToolInput {
+  pattern: string;
+  schema?: string;
 }
 
 export async function executeSearchColumnsTool(
   input: SearchColumnsToolInput
-): Promise<{ content: Array<{ type: 'text'; text: string }> }> {
+): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: boolean }> {
   try {
     const schema = await getSchemaMetadata();
     const pattern = input.pattern.toLowerCase();
@@ -147,6 +108,7 @@ export async function executeSearchColumnsTool(
           text: `Error searching columns: ${errorMessage}`,
         },
       ],
+      isError: true,
     };
   }
 }

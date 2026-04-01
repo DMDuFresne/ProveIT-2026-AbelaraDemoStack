@@ -9,7 +9,6 @@
  * correctly with read-only database users.
  */
 
-import { z } from 'zod';
 import { getOntologyMetadata } from '../database/schema-loader.js';
 import { getDatabaseContext } from '../database/schema-loader.js';
 import { getConfig } from '../config.js';
@@ -39,73 +38,15 @@ type OntologySection = typeof VALID_SECTIONS[number];
 const MAX_OUTPUT_CHARS = 100_000;
 const MAX_VIEW_DEF_CHARS = 500;
 
-export const getOntologyToolName = 'get_ontology';
-
-export const getOntologyToolSchema = z.object({
-  schema: z
-    .string()
-    .optional()
-    .describe('Filter to a specific schema name'),
-  table: z
-    .string()
-    .optional()
-    .describe('Focus on a specific table and its FK neighborhood'),
-  sections: z
-    .array(z.enum(VALID_SECTIONS))
-    .optional()
-    .describe(
-      'Pick specific sections to include. Options: overview, constraints, enums, relationships, views, indexes, triggers, domain_context. If omitted, all sections are included.'
-    ),
-});
-
-export type GetOntologyToolInput = z.infer<typeof getOntologyToolSchema>;
-
-export function getGetOntologyToolDefinition() {
-  return {
-    name: getOntologyToolName,
-    description: `Get the semantic ontology of the database — the meaning behind the structure.
-
-While schema_overview and describe_table show structure (tables, columns, types), this tool reveals semantics:
-- **Check constraints**: Valid value ranges/sets (e.g., status must be 'active' or 'inactive')
-- **Enum types**: Custom enumeration values defined in the database
-- **Unique constraints**: Natural keys beyond primary keys
-- **View definitions**: How derived/computed data is assembled (SQL)
-- **Index patterns**: How the data is accessed and queried in practice
-- **Triggers**: Automatic behaviors that fire on data changes
-- **Row counts**: Data scale context for each table
-
-Use this tool FIRST when exploring an unfamiliar database to understand its domain model, business rules, and data semantics before writing queries.
-
-Supports filtering by schema, focusing on a single table (includes FK neighbors), or selecting specific sections.`,
-    inputSchema: {
-      type: 'object' as const,
-      properties: {
-        schema: {
-          type: 'string',
-          description: `Filter to a specific schema (default: all exposed schemas)`,
-        },
-        table: {
-          type: 'string',
-          description: 'Focus on a specific table and its FK neighborhood',
-        },
-        sections: {
-          type: 'array',
-          items: {
-            type: 'string',
-            enum: [...VALID_SECTIONS],
-          },
-          description:
-            'Sections to include: overview, constraints, enums, relationships, views, indexes, triggers, domain_context',
-        },
-      },
-      required: [],
-    },
-  };
+interface GetOntologyToolInput {
+  schema?: string;
+  table?: string;
+  sections?: OntologySection[];
 }
 
 export async function executeGetOntologyTool(
   input: GetOntologyToolInput
-): Promise<{ content: Array<{ type: 'text'; text: string }> }> {
+): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: boolean }> {
   try {
     const ontology = await getOntologyMetadata();
     const dbContext = await getDatabaseContext();
@@ -202,6 +143,7 @@ export async function executeGetOntologyTool(
           text: `Error loading ontology: ${errorMessage}`,
         },
       ],
+      isError: true,
     };
   }
 }
@@ -313,15 +255,32 @@ function renderOverview(
   // Table row counts
   if (ontology.estimatedRowCounts.length > 0) {
     lines.push('### Table Scale (Estimated Rows)');
-    lines.push('| Table | Est. Rows |');
-    lines.push('|-------|-----------|');
+    lines.push('| Table | Est. Rows | Status |');
+    lines.push('|-------|-----------|--------|');
     for (const rc of ontology.estimatedRowCounts) {
       const displayName = schemaFilter
         ? rc.tableName
         : `${rc.schemaName}.${rc.tableName}`;
-      lines.push(`| ${displayName} | ${formatNumber(rc.estimatedRows)} |`);
+      const status = rc.neverAnalyzed ? 'Never analyzed' : 'Estimated';
+      lines.push(`| ${displayName} | ${formatNumber(rc.estimatedRows)} | ${status} |`);
     }
     lines.push('');
+    lines.push(
+      '*Estimates from pg_class.reltuples. Run ANALYZE or use `get_table_stats` for exact COUNT(\\*).*'
+    );
+    lines.push('');
+
+    // Prominent warning for never-analyzed tables
+    const neverAnalyzed = ontology.estimatedRowCounts.filter(rc => rc.neverAnalyzed);
+    if (neverAnalyzed.length > 0) {
+      lines.push('> **Warning:** The following tables have never been analyzed — row estimates may be wildly inaccurate:');
+      for (const rc of neverAnalyzed) {
+        const name = schemaFilter ? rc.tableName : `${rc.schemaName}.${rc.tableName}`;
+        lines.push(`> - ${name}`);
+      }
+      lines.push('> Run `ANALYZE schema.table` or use `get_table_stats` for exact counts.');
+      lines.push('');
+    }
   }
 
   return lines;
@@ -434,7 +393,7 @@ function renderViewDefinitions(views: ViewDefinitionInfo[]): string[] {
       lines.push(def.slice(0, MAX_VIEW_DEF_CHARS) + ' ...');
       lines.push('```');
       lines.push(
-        `*Truncated (${def.length} chars). Use \`query\` tool with \`SELECT pg_get_viewdef('${v.schemaName}.${v.viewName}'::regclass, true)\` for full SQL.*`
+        `*Truncated (${def.length} chars). Use \`get_view_definition\` tool with view="${v.viewName}" for the full SQL and column listing.*`
       );
     } else {
       lines.push('```sql');

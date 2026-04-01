@@ -2,59 +2,17 @@
  * Explain Query tool - Run EXPLAIN ANALYZE on a query
  */
 
-import { z } from 'zod';
 import { rawQuery } from '../database/client.js';
 import { containsBlockedKeywords } from '../database/client.js';
 
-export const explainQueryToolName = 'explain_query';
-
-export const explainQueryToolSchema = z.object({
-  sql: z.string().min(1).describe('The SQL SELECT query to explain'),
-  analyze: z
-    .boolean()
-    .default(false)
-    .describe('Run EXPLAIN ANALYZE (actually executes query, default: false)'),
-});
-
-export type ExplainQueryToolInput = z.infer<typeof explainQueryToolSchema>;
-
-export function getExplainQueryToolDefinition() {
-  return {
-    name: explainQueryToolName,
-    description: `Run EXPLAIN on a SQL query to show the execution plan.
-
-Useful for:
-- Understanding how PostgreSQL will execute a query
-- Identifying missing indexes
-- Optimizing slow queries
-- Seeing estimated vs actual row counts (with analyze=true)
-
-Options:
-- analyze=false (default): Shows plan without executing
-- analyze=true: Executes query and shows actual timings
-
-Only SELECT queries are allowed.`,
-    inputSchema: {
-      type: 'object' as const,
-      properties: {
-        sql: {
-          type: 'string',
-          description: 'The SQL SELECT query to explain',
-        },
-        analyze: {
-          type: 'boolean',
-          description: 'Run EXPLAIN ANALYZE (actually executes query, default: false)',
-          default: false,
-        },
-      },
-      required: ['sql'],
-    },
-  };
+interface ExplainQueryToolInput {
+  sql: string;
+  analyze?: boolean;
 }
 
 export async function executeExplainQueryTool(
   input: ExplainQueryToolInput
-): Promise<{ content: Array<{ type: 'text'; text: string }> }> {
+): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: boolean }> {
   try {
     // Security check
     const blockedKeyword = containsBlockedKeywords(input.sql);
@@ -66,6 +24,7 @@ export async function executeExplainQueryTool(
             text: `Query contains blocked keyword: ${blockedKeyword}. Only SELECT queries are allowed.`,
           },
         ],
+        isError: true,
       };
     }
 
@@ -121,6 +80,7 @@ export async function executeExplainQueryTool(
           text: `Error explaining query: ${errorMessage}`,
         },
       ],
+      isError: true,
     };
   }
 }

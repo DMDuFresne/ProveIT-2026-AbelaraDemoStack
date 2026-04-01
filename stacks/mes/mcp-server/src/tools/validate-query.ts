@@ -2,50 +2,16 @@
  * Validate Query tool - Check query syntax without executing
  */
 
-import { z } from 'zod';
 import { rawQuery } from '../database/client.js';
 import { containsBlockedKeywords } from '../database/client.js';
 
-export const validateQueryToolName = 'validate_query';
-
-export const validateQueryToolSchema = z.object({
-  sql: z.string().min(1).describe('The SQL query to validate'),
-});
-
-export type ValidateQueryToolInput = z.infer<typeof validateQueryToolSchema>;
-
-export function getValidateQueryToolDefinition() {
-  return {
-    name: validateQueryToolName,
-    description: `Validate SQL query syntax without executing it.
-
-Uses PostgreSQL's PREPARE statement to parse and validate the query.
-Returns either:
-- Success with the query plan summary
-- Error with details about what's wrong (syntax errors, unknown tables, etc.)
-
-Useful for:
-- Checking query syntax before running
-- Validating table and column names exist
-- Catching errors early without affecting data
-
-Only SELECT queries are allowed.`,
-    inputSchema: {
-      type: 'object' as const,
-      properties: {
-        sql: {
-          type: 'string',
-          description: 'The SQL query to validate',
-        },
-      },
-      required: ['sql'],
-    },
-  };
+interface ValidateQueryToolInput {
+  sql: string;
 }
 
 export async function executeValidateQueryTool(
   input: ValidateQueryToolInput
-): Promise<{ content: Array<{ type: 'text'; text: string }> }> {
+): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: boolean }> {
   try {
     // Security check
     const blockedKeyword = containsBlockedKeywords(input.sql);
@@ -64,6 +30,7 @@ export async function executeValidateQueryTool(
             ),
           },
         ],
+        isError: true,
       };
     }
 
@@ -132,6 +99,7 @@ export async function executeValidateQueryTool(
           ),
         },
       ],
+      isError: true,
     };
   }
 }

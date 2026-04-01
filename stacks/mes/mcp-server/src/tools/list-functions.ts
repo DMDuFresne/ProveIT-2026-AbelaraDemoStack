@@ -2,44 +2,12 @@
  * List Functions tool - List all functions with parameters and descriptions
  */
 
-import { z } from 'zod';
 import { getSchemaMetadata } from '../database/schema-loader.js';
 import { getFunctionDescription } from '../descriptions/generator.js';
 import { FunctionInfo } from '../types/index.js';
 
-export const listFunctionsToolName = 'list_functions';
-
-export const listFunctionsToolSchema = z.object({
-  schema: z
-    .string()
-    .optional()
-    .describe('Optional schema name to filter'),
-});
-
-export type ListFunctionsToolInput = z.infer<typeof listFunctionsToolSchema>;
-
-export function getListFunctionsToolDefinition() {
-  return {
-    name: listFunctionsToolName,
-    description: `List all functions in the database with their parameters and descriptions.
-
-Functions provide useful operations like:
-- Data transformation and validation
-- Aggregate calculations
-- Business logic encapsulation
-
-Optionally filter by schema name. Returns function signatures with parameter types and descriptions.`,
-    inputSchema: {
-      type: 'object' as const,
-      properties: {
-        schema: {
-          type: 'string',
-          description: 'Optional schema name to filter',
-        },
-      },
-      required: [],
-    },
-  };
+interface ListFunctionsToolInput {
+  schema?: string;
 }
 
 /**
@@ -62,7 +30,7 @@ function formatFunctionSignature(func: FunctionInfo): string {
 
 export async function executeListFunctionsTool(
   input: ListFunctionsToolInput
-): Promise<{ content: Array<{ type: 'text'; text: string }> }> {
+): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: boolean }> {
   try {
     const schema = await getSchemaMetadata();
     let functions = schema.functions;
@@ -122,6 +90,7 @@ export async function executeListFunctionsTool(
           text: `Error listing functions: ${errorMessage}`,
         },
       ],
+      isError: true,
     };
   }
 }

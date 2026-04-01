@@ -1,7 +1,7 @@
 {
-  "name": "@generic/postgres-mcp-server",
+  "name": "pgllens",
   "version": "2.1.0",
-  "description": "Generic PostgreSQL MCP server with self-documenting schema introspection and optional domain context",
+  "description": "Give AI eyes on your database. Self-documenting PostgreSQL MCP server with schema introspection, semantic discovery, and domain context.",
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
@@ -20,13 +20,24 @@
     "postgres",
     "postgresql",
     "database",
+    "llm",
+    "ai",
     "self-documenting",
     "schema-introspection",
     "streamable-http",
-    "oauth"
+    "oauth",
+    "timescaledb"
   ],
-  "author": "ProveIT Team",
-  "license": "UNLICENSED",
+  "author": "Dylan DuFresne",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DMDuFresne/pgllens.git"
+  },
+  "bugs": {
+    "url": "https://github.com/DMDuFresne/pgllens/issues"
+  },
+  "homepage": "https://github.com/DMDuFresne/pgllens#readme",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.25.0",
     "cors": "^2.8.5",

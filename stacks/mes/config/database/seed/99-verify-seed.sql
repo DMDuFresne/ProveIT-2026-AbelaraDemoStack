@@ -20,7 +20,7 @@ UNION ALL SELECT 'performance_target', COUNT(*) FROM mes_core.performance_target
 ORDER BY table_name;
 
 -- Expected MES Core counts:
--- asset_definition: 66
+-- asset_definition: 121  (66 Site 1 + 36 Site 2 + 19 Site 3)
 -- asset_type: 18
 -- count_type: 5
 -- downtime_reason: 8

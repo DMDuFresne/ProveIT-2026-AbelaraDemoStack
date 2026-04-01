@@ -2,57 +2,19 @@
  * Query tool - Execute read-only SQL queries
  */
 
-import { z } from 'zod';
 import { query as executeQuery } from '../database/client.js';
-import { getQueryToolDescription } from '../descriptions/generator.js';
 
-export const queryToolName = 'query';
-
-export const queryToolSchema = z.object({
-  sql: z
-    .string()
-    .min(1)
-    .describe('The SQL SELECT query to execute'),
-});
-
-export type QueryToolInput = z.infer<typeof queryToolSchema>;
-
-export function getQueryToolDefinition() {
-  return {
-    name: queryToolName,
-    description: getQueryToolDescription(),
-    inputSchema: {
-      type: 'object' as const,
-      properties: {
-        sql: {
-          type: 'string',
-          description: 'The SQL SELECT query to execute',
-        },
-      },
-      required: ['sql'],
-    },
-  };
+interface QueryToolInput {
+  sql: string;
 }
 
 export async function executeQueryTool(
   input: QueryToolInput
-): Promise<{ content: Array<{ type: 'text'; text: string }> }> {
+): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: boolean }> {
   try {
     const result = await executeQuery(input.sql);
 
-    const output = {
-      success: true,
-      columns: result.columns,
-      rows: result.rows,
-      rowCount: result.rowCount,
-      truncated: result.truncated,
-    };
-
-    let text = JSON.stringify(output, null, 2);
-
-    if (result.truncated) {
-      text += `\n\n⚠️ Results truncated. Query returned ${result.rowCount} rows but only showing first rows. Add LIMIT to your query for better control.`;
-    }
+    const text = formatQueryResult(result);
 
     return {
       content: [{ type: 'text', text }],
@@ -65,16 +27,50 @@ export async function executeQueryTool(
       content: [
         {
           type: 'text',
-          text: JSON.stringify(
-            {
-              success: false,
-              error: errorMessage,
-            },
-            null,
-            2
-          ),
+          text: `Error executing query: ${errorMessage}`,
         },
       ],
+      isError: true,
     };
   }
+}
+
+function formatQueryResult(result: {
+  columns: string[];
+  rows: Record<string, unknown>[];
+  rowCount: number;
+  truncated: boolean;
+}): string {
+  const lines: string[] = [];
+
+  if (result.rows.length === 0) {
+    lines.push('Query returned 0 rows.');
+    return lines.join('\n');
+  }
+
+  // Header
+  lines.push('| ' + result.columns.join(' | ') + ' |');
+  lines.push('|' + result.columns.map(() => '---').join('|') + '|');
+
+  // Rows
+  for (const row of result.rows) {
+    const cells = result.columns.map(col => escapeCell(row[col]));
+    lines.push('| ' + cells.join(' | ') + ' |');
+  }
+
+  lines.push('');
+  lines.push(`*${result.rowCount} row(s)*`);
+
+  if (result.truncated) {
+    lines.push('');
+    lines.push('> Results truncated. Add LIMIT to your query for better control.');
+  }
+
+  return lines.join('\n');
+}
+
+function escapeCell(val: unknown): string {
+  if (val === null || val === undefined) return 'NULL';
+  const s = typeof val === 'object' ? JSON.stringify(val) : String(val);
+  return s.replace(/\|/g, '\\|').replace(/\n/g, ' ');
 }

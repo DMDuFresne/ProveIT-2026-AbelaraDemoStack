@@ -189,6 +189,7 @@ export interface EstimatedRowCount {
   schemaName: string;
   tableName: string;
   estimatedRows: number;
+  neverAnalyzed: boolean;
 }
 
 /**

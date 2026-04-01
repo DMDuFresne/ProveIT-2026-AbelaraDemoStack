@@ -2,69 +2,19 @@
  * Get Sample Data tool - Return sample rows from a table
  */
 
-import { z } from 'zod';
 import { query } from '../database/client.js';
 import { getTable } from '../database/schema-loader.js';
 import { getDefaultSchema } from '../config.js';
 
-export const getSampleDataToolName = 'get_sample_data';
-
-export const getSampleDataToolSchema = z.object({
-  schema: z
-    .string()
-    .optional()
-    .describe('Schema name (uses configured default if not specified)'),
-  table: z.string().min(1).describe('Table or view name'),
-  limit: z
-    .number()
-    .int()
-    .min(1)
-    .max(20)
-    .default(5)
-    .describe('Number of rows to return (1-20, default: 5)'),
-});
-
-export type GetSampleDataToolInput = z.infer<typeof getSampleDataToolSchema>;
-
-export function getGetSampleDataToolDefinition() {
-  const defaultSchema = getDefaultSchema();
-  return {
-    name: getSampleDataToolName,
-    description: `Get sample rows from a table or view to understand actual data patterns.
-
-Returns a small set of rows (default 5, max 20) to help understand:
-- Actual data formats and values
-- Column content patterns
-- Typical record structures
-
-For tables with timestamp columns (logged_at, created_at), returns most recent rows.
-For other tables, returns a random sample.`,
-    inputSchema: {
-      type: 'object' as const,
-      properties: {
-        schema: {
-          type: 'string',
-          description: `Schema name (default: ${defaultSchema})`,
-          default: defaultSchema,
-        },
-        table: {
-          type: 'string',
-          description: 'Table or view name',
-        },
-        limit: {
-          type: 'number',
-          description: 'Number of rows to return (1-20, default: 5)',
-          default: 5,
-        },
-      },
-      required: ['table'],
-    },
-  };
+interface GetSampleDataToolInput {
+  schema?: string;
+  table: string;
+  limit?: number;
 }
 
 export async function executeGetSampleDataTool(
   input: GetSampleDataToolInput
-): Promise<{ content: Array<{ type: 'text'; text: string }> }> {
+): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: boolean }> {
   try {
     const schemaName = input.schema || getDefaultSchema();
     const limit = input.limit || 5;
@@ -79,6 +29,7 @@ export async function executeGetSampleDataTool(
             text: `Table ${schemaName}.${input.table} not found.`,
           },
         ],
+        isError: true,
       };
     }
 
@@ -125,6 +76,7 @@ export async function executeGetSampleDataTool(
           text: `Error getting sample data: ${errorMessage}`,
         },
       ],
+      isError: true,
     };
   }
 }

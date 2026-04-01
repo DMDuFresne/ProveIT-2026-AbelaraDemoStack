@@ -37,10 +37,21 @@ import {
   executeValidateQueryTool,
   executeRefreshSchemaTool,
   executeGetOntologyTool,
+  executeListExtensionsTool,
+  executeGetViewDefinitionTool,
+  executeGetFunctionSourceTool,
+  executeListRolesTool,
+  executeGetTableHealthTool,
+  executeListHypertablesTool,
 } from './tools/index.js';
 
 // Import descriptions
-import { getQueryToolDescription } from './descriptions/generator.js';
+import {
+  getQueryToolDescription,
+  getListTablesToolDescription,
+  getDescribeTableToolDescription,
+  getSchemaOverviewToolDescription,
+} from './descriptions/generator.js';
 
 const SERVER_NAME = 'postgres-mcp';
 const SERVER_VERSION = '2.1.0';
@@ -106,6 +117,18 @@ function clearRateLimit(ip: string): void {
 }
 
 /**
+ * HTML-escape a string for safe interpolation into HTML templates
+ */
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
  * Timing-safe password comparison to prevent timing attacks
  */
 function safeComparePasswords(provided: string, expected: string): boolean {
@@ -148,6 +171,20 @@ const authCodes: Record<string, {
   expires: number;
 }> = {};
 
+// Issued token store (maps token to client info and expiry)
+const issuedTokens = new Map<string, { clientId: string; expiresAt: number }>();
+
+// Periodic cleanup of expired tokens (every 10 minutes)
+const tokenCleanupInterval = setInterval(() => {
+  const now = Date.now();
+  for (const [token, info] of issuedTokens) {
+    if (info.expiresAt <= now) {
+      issuedTokens.delete(token);
+    }
+  }
+}, 600000);
+tokenCleanupInterval.unref();
+
 /**
  * Create and configure the MCP server with all tools
  */
@@ -180,7 +217,7 @@ function createMcpServer(): McpServer {
   // Register list_tables tool
   server.tool(
     'list_tables',
-    'List all tables and views in the database with their descriptions. Optionally filter by schema name.',
+    getListTablesToolDescription(),
     {
       schema: z.string().optional().describe('Optional schema name to filter'),
     },
@@ -205,7 +242,7 @@ function createMcpServer(): McpServer {
   const defaultSchema = getDefaultSchema();
   server.tool(
     'describe_table',
-    'Get detailed column information for a specific table or view including types, constraints, and relationships.',
+    getDescribeTableToolDescription(),
     {
       schema: z.string().default(defaultSchema).describe(`Schema name (default: ${defaultSchema})`),
       table: z.string().min(1).describe('Table or view name'),
@@ -218,7 +255,7 @@ function createMcpServer(): McpServer {
   // Register schema_overview tool
   server.tool(
     'schema_overview',
-    'Get a complete overview of the database schema as structured JSON including all tables, views, and functions.',
+    getSchemaOverviewToolDescription(),
     {},
     async () => {
       return executeSchemaOverviewTool({});
@@ -295,7 +332,7 @@ function createMcpServer(): McpServer {
   // Register refresh_schema tool
   server.tool(
     'refresh_schema',
-    'Force refresh of the database schema cache. Use after DDL changes to see updates immediately.',
+    'Force refresh of the MCP server\'s internal metadata cache. Use after DDL changes to see updates immediately. Note: This does NOT run PostgreSQL ANALYZE — row count estimates from get_ontology will still reflect pg_class.reltuples until Postgres runs auto-analyze or you run ANALYZE manually.',
     {},
     async () => {
       return executeRefreshSchemaTool({});
@@ -346,6 +383,83 @@ function createMcpServer(): McpServer {
     }
   );
 
+  // Register list_extensions tool
+  server.tool(
+    'list_extensions',
+    'List installed PostgreSQL extensions with version, schema, and description.',
+    {
+      name: z.string().optional().describe('Filter by name (partial match, case-insensitive)'),
+    },
+    async (args) => {
+      return executeListExtensionsTool({ name: args.name });
+    }
+  );
+
+  // Register get_view_definition tool
+  server.tool(
+    'get_view_definition',
+    'Get the full SQL definition and column listing for a view or materialized view.',
+    {
+      schema: z.string().default(defaultSchema).describe(`Schema name (default: ${defaultSchema})`),
+      view: z.string().min(1).describe('View name'),
+    },
+    async (args) => {
+      return executeGetViewDefinitionTool({ schema: args.schema, view: args.view });
+    }
+  );
+
+  // Register get_function_source tool
+  server.tool(
+    'get_function_source',
+    'Get the full source code and metadata for a function or procedure, with overload handling.',
+    {
+      schema: z.string().default(defaultSchema).describe(`Schema name (default: ${defaultSchema})`),
+      function_name: z.string().min(1).describe('Function or procedure name'),
+    },
+    async (args) => {
+      return executeGetFunctionSourceTool({ schema: args.schema, function_name: args.function_name });
+    }
+  );
+
+  // Register list_roles tool
+  server.tool(
+    'list_roles',
+    'List database roles and their table-level privileges.',
+    {
+      schema: z.string().optional().describe('Filter grants to a specific schema'),
+      role: z.string().optional().describe('Filter to a specific role name'),
+    },
+    async (args) => {
+      return executeListRolesTool({ schema: args.schema, role: args.role });
+    }
+  );
+
+  // Register get_table_health tool
+  server.tool(
+    'get_table_health',
+    'Get table health statistics: vacuum/analyze history, dead tuples, sizes, and index usage.',
+    {
+      schema: z.string().default(defaultSchema).describe(`Schema name (default: ${defaultSchema})`),
+      table: z.string().optional().describe('Specific table name (omit for summary of all tables)'),
+    },
+    async (args) => {
+      return executeGetTableHealthTool({ schema: args.schema, table: args.table });
+    }
+  );
+
+  // Register list_hypertables tool
+  server.tool(
+    'list_hypertables',
+    'List TimescaleDB hypertables with chunk intervals, compression, policies, and chunk statistics.',
+    {
+      schema: z.string().default(defaultSchema).describe(`Schema name (default: ${defaultSchema})`),
+      table: z.string().optional().describe('Focus on a specific hypertable name'),
+    },
+    async (args) => {
+      return executeListHypertablesTool({ schema: args.schema, table: args.table });
+    }
+  );
+
   return server;
 }
 
@@ -367,9 +481,12 @@ function createAuthMiddleware() {
 
     const token = authHeader.substring(7);
 
-    // Simple token validation - accept any non-empty token
-    // Claude Desktop will provide one after OAuth flow
-    if (!token) {
+    // Validate token exists in our issued token store and has not expired
+    const tokenInfo = issuedTokens.get(token);
+    if (!token || !tokenInfo || tokenInfo.expiresAt <= Date.now()) {
+      if (tokenInfo) {
+        issuedTokens.delete(token); // Clean up expired token
+      }
       res.status(401).json({
         error: 'invalid_token',
         error_description: 'Invalid or expired token',
@@ -448,8 +565,8 @@ export async function startServer(): Promise<void> {
     allowedHeaders: ['Content-Type', 'Authorization', 'Mcp-Session-Id', 'Last-Event-Id'],
     exposedHeaders: ['Mcp-Session-Id'],
   }));
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
+  app.use(express.json({ limit: '1mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
   // Auth middleware (conditional)
   const authMiddleware = useOAuth ? createAuthMiddleware() : null;
@@ -526,37 +643,70 @@ export async function startServer(): Promise<void> {
 <!DOCTYPE html>
 <html>
 <head>
-  <title>ProveIT MES - Authorization</title>
+  <title>PgLLens - Authorization</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Commissioner:wght@400;700&family=Exo:wght@500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Commissioner:wght@400;700&family=Exo:wght@500&display=swap" rel="stylesheet"></noscript>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    body { font-family: 'Commissioner', Arial, sans-serif;
            display: flex; justify-content: center; align-items: center; height: 100vh;
-           margin: 0; background: #1a1a2e; color: #eee; }
-    .container { background: #16213e; padding: 2rem; border-radius: 8px;
-                 box-shadow: 0 4px 20px rgba(0,0,0,0.3); width: 320px; }
-    h1 { margin: 0 0 0.5rem 0; font-size: 1.5rem; color: #4ecca3; }
-    p { margin: 0 0 1.5rem 0; color: #888; font-size: 0.9rem; }
-    input { width: 100%; padding: 0.75rem; margin-bottom: 1rem; border: 1px solid #333;
-            border-radius: 4px; background: #0f0f23; color: #eee; box-sizing: border-box; }
-    button { width: 100%; padding: 0.75rem; background: #4ecca3; color: #1a1a2e;
-             border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
-    button:hover { background: #3db892; }
-    .error { color: #ff6b6b; margin-bottom: 1rem; font-size: 0.9rem; }
+           margin: 0; background: #252525; color: #fff; }
+    .container { background: #1e1e1e; padding: 2.5rem; border-radius: 8px;
+                 box-shadow: 0 4px 24px rgba(0,0,0,0.4); width: 340px;
+                 border-top: 3px solid; border-image: linear-gradient(90deg, #D4FDB1, #B3E6E1) 1; }
+    .brand { text-align: center; margin-bottom: 1.5rem; }
+    .brand h1 { margin: 0; font-size: 1.6rem; font-weight: 700; color: #fff; }
+    .brand h1 span { background: linear-gradient(90deg, #D4FDB1, #B3E6E1);
+                     -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+                     background-clip: text; }
+    .subtitle { font-family: 'Exo', Arial, sans-serif; font-weight: 500;
+                text-transform: uppercase; letter-spacing: 0.075em;
+                font-size: 0.7rem; color: #888; margin: 0.5rem 0 0 0; }
+    p { margin: 0 0 1.5rem 0; color: #999; font-size: 0.9rem; text-align: center; }
+    label { font-family: 'Exo', Arial, sans-serif; font-weight: 500;
+            text-transform: uppercase; letter-spacing: 0.075em;
+            font-size: 0.7rem; color: #888; display: block; margin-bottom: 0.4rem; }
+    input[type="password"] { width: 100%; padding: 0.75rem; margin-bottom: 1.25rem;
+            border: 1px solid #3a3a3a; border-radius: 4px; background: #252525;
+            color: #fff; box-sizing: border-box; font-family: 'Commissioner', Arial, sans-serif;
+            font-size: 0.95rem; transition: border-color 0.2s; }
+    input[type="password"]:focus { outline: none; border-color: #B3E6E1; }
+    button { width: 100%; padding: 0.75rem; border: none; border-radius: 4px;
+             cursor: pointer; font-weight: 700; font-size: 0.95rem;
+             font-family: 'Commissioner', Arial, sans-serif;
+             background: linear-gradient(90deg, #D4FDB1, #B3E6E1); color: #252525;
+             transition: opacity 0.2s; }
+    button:hover { opacity: 0.88; }
+    .error { color: #F5602B; margin-bottom: 1rem; font-size: 0.85rem; text-align: center; }
+    .footer { text-align: center; margin-top: 1.5rem; }
+    .footer a { font-family: 'Exo', Arial, sans-serif; font-weight: 500;
+                text-transform: uppercase; letter-spacing: 0.075em;
+                font-size: 0.65rem; color: #555; text-decoration: none; }
+    .footer a:hover { color: #B3E6E1; }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>🔐 ProveIT MES</h1>
-    <p>Enter password to authorize MCP access</p>
-    ${error ? `<div class="error">${error}</div>` : ''}
+    <div class="brand">
+      <h1><span>PgLLens</span></h1>
+      <p class="subtitle">MCP Authorization</p>
+    </div>
+    <p>Enter password to continue</p>
+    ${error ? `<div class="error">${escapeHtml(error)}</div>` : ''}
     <form method="POST">
-      <input type="hidden" name="redirect_uri" value="${redirect_uri || ''}" />
-      <input type="hidden" name="state" value="${state || ''}" />
-      <input type="hidden" name="client_id" value="${client_id || ''}" />
-      <input type="hidden" name="code_challenge" value="${code_challenge || ''}" />
-      <input type="hidden" name="code_challenge_method" value="${code_challenge_method || ''}" />
-      <input type="password" name="password" placeholder="Password" autofocus required />
+      <input type="hidden" name="redirect_uri" value="${escapeHtml(redirect_uri || '')}" />
+      <input type="hidden" name="state" value="${escapeHtml(state || '')}" />
+      <input type="hidden" name="client_id" value="${escapeHtml(client_id || '')}" />
+      <input type="hidden" name="code_challenge" value="${escapeHtml(code_challenge || '')}" />
+      <input type="hidden" name="code_challenge_method" value="${escapeHtml(code_challenge_method || '')}" />
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" placeholder="Enter passphrase" autofocus required />
       <button type="submit">Authorize</button>
     </form>
+    <div class="footer">
+      <a href="https://abelara.com" target="_blank" rel="noopener">Abelara</a>
+    </div>
   </div>
 </body>
 </html>`;
@@ -564,6 +714,16 @@ export async function startServer(): Promise<void> {
     // GET - show login form (or auto-approve if no password set)
     app.get('/oauth/authorize', (req, res) => {
       const { redirect_uri, state, client_id, code_challenge, code_challenge_method } = req.query;
+
+      // Validate redirect_uri against registered client
+      const client = oauthClients[client_id as string];
+      if (client && redirect_uri && !client.redirect_uris.includes(redirect_uri as string)) {
+        res.status(400).json({
+          error: 'invalid_request',
+          error_description: 'redirect_uri does not match any registered redirect URIs for this client',
+        });
+        return;
+      }
 
       // If no password configured, auto-approve (backward compatible)
       if (!authPassword) {
@@ -586,6 +746,16 @@ export async function startServer(): Promise<void> {
     app.post('/oauth/authorize', (req, res) => {
       const { redirect_uri, state, client_id, code_challenge, code_challenge_method, password } = req.body;
       const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
+
+      // Validate redirect_uri against registered client
+      const client = oauthClients[client_id as string];
+      if (client && redirect_uri && !client.redirect_uris.includes(redirect_uri as string)) {
+        res.status(400).json({
+          error: 'invalid_request',
+          error_description: 'redirect_uri does not match any registered redirect URIs for this client',
+        });
+        return;
+      }
 
       // Check rate limiting
       const rateLimitError = checkRateLimit(clientIp);
@@ -622,25 +792,41 @@ export async function startServer(): Promise<void> {
 
     // OAuth token endpoint (exchanges code for access token OR handles client_credentials)
     app.post('/oauth/token', (req, res) => {
-      const { code, grant_type, client_id, client_secret } = req.body;
+      const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
+
+      // Rate limiting on token endpoint
+      const rateLimitError = checkRateLimit(clientIp);
+      if (rateLimitError) {
+        res.status(429).json({
+          error: 'too_many_requests',
+          error_description: rateLimitError,
+        });
+        return;
+      }
+
+      const { code, grant_type, client_id } = req.body;
 
       // Support client_credentials grant for Claude Code (machine-to-machine)
       if (grant_type === 'client_credentials') {
-        // For local dev, accept any registered client or auto-register
-        if (client_id && !oauthClients[client_id]) {
-          // Auto-register the client for convenience
-          oauthClients[client_id] = {
-            client_id,
-            client_secret,
-            redirect_uris: [],
-            client_name: 'Auto-registered Client',
-            created_at: Date.now(),
-          };
-          console.log(`Auto-registered OAuth client: ${client_id}`);
+        // Require clients to register first via /oauth/register
+        if (!client_id || !oauthClients[client_id]) {
+          recordFailedAttempt(clientIp);
+          res.status(401).json({
+            error: 'invalid_client',
+            error_description: 'Unknown client_id. Register via /oauth/register first.',
+          });
+          return;
         }
 
+        clearRateLimit(clientIp);
+        const accessToken = randomUUID();
+        issuedTokens.set(accessToken, {
+          clientId: client_id,
+          expiresAt: Date.now() + OAUTH_TOKEN_EXPIRES_IN * 1000,
+        });
+
         res.json({
-          access_token: randomUUID(),
+          access_token: accessToken,
           token_type: 'Bearer',
           expires_in: OAUTH_TOKEN_EXPIRES_IN,
         });
@@ -653,6 +839,7 @@ export async function startServer(): Promise<void> {
         const authCode = authCodes[code];
         if (!authCode || authCode.expires < Date.now()) {
           delete authCodes[code];
+          recordFailedAttempt(clientIp);
           res.status(400).json({
             error: 'invalid_grant',
             error_description: 'Invalid or expired authorization code',
@@ -663,8 +850,15 @@ export async function startServer(): Promise<void> {
         // Clean up used code
         delete authCodes[code];
 
+        clearRateLimit(clientIp);
+        const accessToken = randomUUID();
+        issuedTokens.set(accessToken, {
+          clientId: authCode.client_id,
+          expiresAt: Date.now() + OAUTH_TOKEN_EXPIRES_IN * 1000,
+        });
+
         res.json({
-          access_token: randomUUID(),
+          access_token: accessToken,
           token_type: 'Bearer',
           expires_in: OAUTH_TOKEN_EXPIRES_IN,
         });

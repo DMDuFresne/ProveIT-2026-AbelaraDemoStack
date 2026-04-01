@@ -2,66 +2,13 @@
  * Get Relationships tool - Show FK relationships for a table or full schema
  */
 
-import { z } from 'zod';
 import { getSchemaMetadata, getTable } from '../database/schema-loader.js';
 import { getDefaultSchema } from '../config.js';
 
-export const getRelationshipsToolName = 'get_relationships';
-
-export const getRelationshipsToolSchema = z.object({
-  table: z
-    .string()
-    .optional()
-    .describe('Specific table name (optional - if omitted, shows all relationships)'),
-  schema: z
-    .string()
-    .optional()
-    .describe('Schema name (uses configured default if not specified)'),
-  format: z
-    .enum(['text', 'mermaid'])
-    .default('text')
-    .describe('Output format: text or mermaid diagram (default: text)'),
-});
-
-export type GetRelationshipsToolInput = z.infer<typeof getRelationshipsToolSchema>;
-
-export function getGetRelationshipsToolDefinition() {
-  const defaultSchema = getDefaultSchema();
-  return {
-    name: getRelationshipsToolName,
-    description: `Show foreign key relationships between tables.
-
-Can show:
-- Relationships for a specific table (incoming and outgoing FKs)
-- All relationships in a schema (overview)
-
-Output formats:
-- text: Human-readable list of relationships
-- mermaid: Mermaid ER diagram syntax for visualization
-
-Useful for understanding how tables connect and planning JOINs.`,
-    inputSchema: {
-      type: 'object' as const,
-      properties: {
-        table: {
-          type: 'string',
-          description: 'Specific table name (optional - if omitted, shows all relationships)',
-        },
-        schema: {
-          type: 'string',
-          description: `Schema name (default: ${defaultSchema})`,
-          default: defaultSchema,
-        },
-        format: {
-          type: 'string',
-          enum: ['text', 'mermaid'],
-          description: 'Output format: text or mermaid diagram (default: text)',
-          default: 'text',
-        },
-      },
-      required: [],
-    },
-  };
+interface GetRelationshipsToolInput {
+  table?: string;
+  schema?: string;
+  format?: 'text' | 'mermaid';
 }
 
 interface Relationship {
@@ -75,7 +22,7 @@ interface Relationship {
 
 export async function executeGetRelationshipsTool(
   input: GetRelationshipsToolInput
-): Promise<{ content: Array<{ type: 'text'; text: string }> }> {
+): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: boolean }> {
   try {
     const schemaName = input.schema || getDefaultSchema();
     const format = input.format || 'text';
@@ -128,6 +75,7 @@ export async function executeGetRelationshipsTool(
                 text: `Table ${schemaName}.${input.table} not found.`,
               },
             ],
+            isError: true,
           };
         }
         return {
@@ -161,6 +109,7 @@ export async function executeGetRelationshipsTool(
           text: `Error getting relationships: ${errorMessage}`,
         },
       ],
+      isError: true,
     };
   }
 }

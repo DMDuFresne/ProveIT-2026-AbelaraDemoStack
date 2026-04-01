@@ -165,8 +165,8 @@ services:
       ACCEPT_MODULE_LICENSES: ${CORE_ACCEPT_MODULE_LICENSES}
       ACCEPT_MODULE_CERTS: ${CORE_ACCEPT_MODULE_CERTS}
       # Memory Settings
-      GATEWAY_INIT_MEMORY: ${CORE_GATEWAY_INIT_MEMORY:-512m}
-      GATEWAY_MAX_MEMORY: ${CORE_GATEWAY_MAX_MEMORY:-2048m}
+      GATEWAY_INIT_MEMORY: 2048m
+      GATEWAY_MAX_MEMORY: 4096m
       # Activation/Licensing (can use IGNITION_ACTIVATION_TOKEN_FILE for secrets)
       IGNITION_ACTIVATION_TOKEN: ${CORE_IGNITION_ACTIVATION_TOKEN:-}
       IGNITION_ACTIVATION_TOKEN_FILE: ${CORE_IGNITION_ACTIVATION_TOKEN_FILE:-}
@@ -258,23 +258,23 @@ services:
   # Cloudflare Tunnel - External Access
   # ---------------------------------------------------------------------------
 
-  # core-cloudflared:
-  #   <<: *defaults
-  #   image: cloudflare/cloudflared:latest
-  #   container_name: proveit-core-cloudflared
-  #   hostname: core-cloudflared
-  #   restart: unless-stopped
-  #   command: tunnel --no-autoupdate run --token ${CORE_CLOUDFLARE_TUNNEL_TOKEN}
-  #   networks:
-  #     - routing-network
-  #   depends_on:
-  #     core-nginx:
-  #       condition: service_healthy
-  #   logging:
-  #     driver: json-file
-  #     options:
-  #       max-size: 10m
-  #       max-file: "3"
+  core-cloudflared:
+    <<: *defaults
+    image: cloudflare/cloudflared:latest
+    container_name: proveit-core-cloudflared
+    hostname: core-cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${CORE_CLOUDFLARE_TUNNEL_TOKEN}
+    networks:
+      - routing-network
+    depends_on:
+      core-nginx:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
 
 # =============================================================================
 # VOLUMES
